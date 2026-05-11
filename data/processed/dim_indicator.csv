@@ -1,0 +1,18 @@
+INDICATOR_ID,INDICATOR_CODE,INDICATOR_NAME,CATEGORY,UNIT,REGULATORY_MIN,HIGHER_IS_BETTER,CRR2_REFERENCE
+1,CET1_FL,Common Equity Tier 1 ratio (fully loaded),CAPITAL,PCT,0.045,True,Art. 50
+2,TIER1_FL,Tier 1 ratio (fully loaded),CAPITAL,PCT,0.06,True,Art. 25
+3,TOTAL_CAP_FL,Total capital ratio (fully loaded),CAPITAL,PCT,0.08,True,Art. 92
+4,RWA_TOTAL,Total RWA,CAPITAL,BEUR,,False,Art. 92
+5,RWA_CREDIT,RWA credit risk (% of total),CAPITAL,PCT,,False,Art. 112
+6,RWA_MARKET,RWA market risk (% of total),CAPITAL,PCT,,False,Art. 325
+7,RWA_OP,RWA operational risk (% of total),CAPITAL,PCT,,False,Art. 312
+8,LCR,Liquidity Coverage Ratio,LIQUIDITY,PCT,1.0,True,Art. 412
+9,NSFR,Net Stable Funding Ratio,LIQUIDITY,PCT,1.0,True,Art. 428b
+10,NPL_RATIO,Non-performing loans ratio (gross),ASSET_QUALITY,PCT,,False,EBA NPL GL
+11,NPL_COVERAGE,NPL coverage ratio,ASSET_QUALITY,PCT,,True,EBA NPL GL
+12,FORBORNE_RATIO,Forborne exposures ratio,ASSET_QUALITY,PCT,,False,EBA GL 2018
+13,ROE,Return on equity,PROFITABILITY,PCT,,True,
+14,ROA,Return on assets,PROFITABILITY,PCT,,True,
+15,CTI,Cost-to-income ratio,PROFITABILITY,PCT,,False,
+16,NIM,Net interest margin,PROFITABILITY,PCT,,True,
+17,LEV_RATIO,Leverage ratio,LEVERAGE,PCT,0.03,True,Art. 429

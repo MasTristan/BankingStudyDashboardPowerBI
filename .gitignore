@@ -1,0 +1,27 @@
+# Raw EBA data (large files, re-downloadable)
+data/raw/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Power BI temp files
+*.pbix.bak
+~*.pbix
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
