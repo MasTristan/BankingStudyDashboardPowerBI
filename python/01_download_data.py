@@ -52,7 +52,7 @@ ECB_KRI_URL = (
 
 # EBA Transparency Exercise 2024 - full database direct file URLs.
 # Subject to change between releases; failure triggers the synthetic fallback.
-EBA_TE_BASE = "https://www.eba.europa.eu/assets/TE2024/Full_database"
+EBA_TE_BASE = "https://www.eba.europa.eu/assets/TE2024/Full_database/256109"
 EBA_TE_FILES: dict[str, str] = {
     "tr_oth.csv":         f"{EBA_TE_BASE}/tr_oth.csv",
     "tr_cre.csv":         f"{EBA_TE_BASE}/tr_cre.csv",
@@ -304,16 +304,23 @@ def _synthetic_metadata(path: Path) -> None:
                 len(TR_OTH_ITEMS) + len(TR_CRE_ITEMS))
 
 
-def write_synthetic_fallback() -> None:
-    """Materialise the SDMX-CSV + EAV synthetic dataset under data/raw/."""
+def write_synthetic_fallback(missing: list[Path]) -> None:
+    """Write synthetic data only for paths in ``missing`` (never overwrites real files)."""
+    missing_set = {p.name for p in missing}
+    if not missing_set:
+        return
     logger.warning(
-        "ECB / EBA endpoints unavailable - generating synthetic dataset "
-        "(SDMX-CSV + EAV schemas, deterministic, tagged via SYNTHETIC.flag)"
+        "generating synthetic fallback for %d missing file(s): %s",
+        len(missing_set), ", ".join(sorted(missing_set)),
     )
-    _synthetic_ecb_kri(RAW_DIR / "ecb_kri.csv")
-    _synthetic_eav(RAW_DIR / "tr_oth.csv", TR_OTH_ITEMS, seed=20240928)
-    _synthetic_eav(RAW_DIR / "tr_cre.csv", TR_CRE_ITEMS, seed=20240929)
-    _synthetic_metadata(RAW_DIR / "TR_Metadata.xlsx")
+    if "ecb_kri.csv" in missing_set:
+        _synthetic_ecb_kri(RAW_DIR / "ecb_kri.csv")
+    if "tr_oth.csv" in missing_set:
+        _synthetic_eav(RAW_DIR / "tr_oth.csv", TR_OTH_ITEMS, seed=20240928)
+    if "tr_cre.csv" in missing_set:
+        _synthetic_eav(RAW_DIR / "tr_cre.csv", TR_CRE_ITEMS, seed=20240929)
+    if "TR_Metadata.xlsx" in missing_set:
+        _synthetic_metadata(RAW_DIR / "TR_Metadata.xlsx")
     (RAW_DIR / "SYNTHETIC.flag").write_text(
         "Synthetic fallback dataset.\n"
         "Generated when live ECB / EBA endpoints were unreachable.\n"
@@ -333,13 +340,9 @@ def main() -> None:
     successes = sum(download_file(url, dest) for url, dest in targets)
     missing = [dest for _, dest in targets if not dest.exists()]
     if missing:
-        logger.warning(
-            "missing %d/%d real files - filling gaps with synthetic data",
-            len(missing), len(targets),
-        )
-        write_synthetic_fallback()
-    else:
-        logger.info("all %d real files cached locally", successes)
+        write_synthetic_fallback(missing)
+    if successes:
+        logger.info("%d/%d real files cached locally", successes, len(targets))
 
 
 if __name__ == "__main__":

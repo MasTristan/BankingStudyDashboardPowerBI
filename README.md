@@ -131,15 +131,28 @@ contracts and refresh checklist.
 
 ### 1. Python pipeline
 
-```bash
+**Windows (PowerShell)**
+```powershell
 python -m venv .venv
-source .venv/bin/activate         # Windows: .venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-python python/01_download_data.py        # ECB KRI + EBA TE 2024 (or synthetic)
+python python/01_download_data.py         # ECB KRI + EBA TE 2024 (or synthetic)
 python python/02_clean_risk_indicators.py
 python python/03_clean_transparency.py
-python python/04_build_model.py          # star schema + validation gates
+python python/04_build_model.py           # star schema + validation gates
+```
+
+**macOS / Linux**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+python python/01_download_data.py
+python python/02_clean_risk_indicators.py
+python python/03_clean_transparency.py
+python python/04_build_model.py
 ```
 
 After the four scripts complete, `data/processed/` contains the five CSVs
