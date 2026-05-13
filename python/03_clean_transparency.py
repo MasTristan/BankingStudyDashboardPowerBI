@@ -1,30 +1,40 @@
 """
-Cleans the four EBA Transparency Exercise 2024 CSV files (bank-by-bank).
+Cleans the EBA Transparency Exercise 2024 CSVs (EAV layout).
 
-Inputs (any of these schemas is accepted)
------------------------------------------
-A) Long format published by EBA:
-       LEI_Code, Bank_Name, Country, Period, Template_Row, Value, ...
-B) Long format used by the synthetic fallback:
-       LEI_Code, Bank_Name, Country, Period, Indicator, Value,
-       Total_Assets_BEUR, Is_GSIB
+Inputs
+------
+- data/raw/tr_oth.csv  Capital, Leverage, RWA, P&L, key metrics (LCR, NSFR, CET1)
+- data/raw/tr_cre.csv  Credit risk: NPL ratio, forborne, coverage
+- data/raw/TR_Metadata.xlsx  Item -> Label mapping (optional)
+
+Real-world column set:
+    LEI_code, NSA, Period, Item, Label, Portfolio, Country, Country_rank,
+    Exposure, Status, Perf_Status, NACE_codes, Amount, Footnote,
+    Row, Column, Sheet
+
+Period is YYYYMM (e.g. 202406 = 30-Jun-2024).
 
 Output
 ------
 - data/processed/transparency_clean.csv
-    Columns: LEI_Code, Bank_Name, Country, REFERENCE_DATE, YEAR_QUARTER,
+    Columns: LEI_CODE, BANK_NAME, COUNTRY_CODE, REFERENCE_DATE, YEAR_QUARTER,
              INDICATOR_CODE, VALUE, TOTAL_ASSETS_BEUR, IS_GSIB, BANK_SIZE
 
-Transformations
----------------
-- Concatenate the four theme files.
-- Map indicator labels / template rows to canonical INDICATOR_CODE values.
-- Normalise percent values into decimals where appropriate.
-- Compute BANK_SIZE buckets:
-    LARGE  : total_assets > 300 BEUR
-    MEDIUM : 30 <= total_assets <= 300 BEUR
-    SMALL  : total_assets < 30 BEUR
-- Flag G-SIBs (FSB 2024 list) when not already provided.
+Strategy
+--------
+1. Read TR_Metadata.xlsx when present; otherwise fall back to label-based
+   matching directly against the CSV `Label` column.
+2. For each target indicator (CET1, Tier1, Total Capital, Leverage, LCR,
+   NSFR, ROE, ROA, CTI, NPL, NPL coverage, Forborne), match against the
+   metadata catalogue with case-insensitive substring search.
+3. Filter to aggregate rows: Portfolio in {"", "a0", "Total"},
+   Country in {"", "Total", "TOT"} and Country_rank in {"", "1"}. This
+   isolates the all-counterparties / all-approaches aggregate that EBA
+   stamps on every disclosing bank.
+4. Pivot Item -> wide indicator columns per (LEI_code, NSA, Period).
+5. Convert Period YYYYMM into REFERENCE_DATE + YEAR_QUARTER.
+6. Compute TOTAL_ASSETS_BEUR (from the RWA_TOTAL proxy when available),
+   BANK_SIZE buckets and IS_GSIB flag from the FSB 2024 roster.
 
 Run
 ---
@@ -46,94 +56,156 @@ RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
+OTH_PATH = RAW_DIR / "tr_oth.csv"
+CRE_PATH = RAW_DIR / "tr_cre.csv"
+METADATA_PATH = RAW_DIR / "TR_Metadata.xlsx"
 OUTPUT_PATH = PROCESSED_DIR / "transparency_clean.csv"
 
-THEME_FILES: tuple[str, ...] = (
-    "transparency_2024_capital.csv",
-    "transparency_2024_asset_quality.csv",
-    "transparency_2024_profitability.csv",
-    "transparency_2024_leverage.csv",
-)
-
-INDICATOR_ALIASES: dict[str, str] = {
-    # Direct canonical codes
-    "CET1_FL": "CET1_FL",
-    "TIER1_FL": "TIER1_FL",
-    "TOTAL_CAP_FL": "TOTAL_CAP_FL",
-    "LEV_RATIO": "LEV_RATIO",
-    "LCR": "LCR",
-    "NSFR": "NSFR",
-    "NPL_RATIO": "NPL_RATIO",
-    "NPL_COVERAGE": "NPL_COVERAGE",
-    "ROE": "ROE",
-    "ROA": "ROA",
-    "CTI": "CTI",
-    # Common EBA template wordings
-    "cet1 ratio - fully loaded": "CET1_FL",
-    "common equity tier 1 ratio (fully loaded)": "CET1_FL",
-    "tier 1 ratio - fully loaded": "TIER1_FL",
-    "total capital ratio - fully loaded": "TOTAL_CAP_FL",
-    "leverage ratio - fully loaded": "LEV_RATIO",
-    "liquidity coverage ratio (%)": "LCR",
-    "net stable funding ratio (%)": "NSFR",
-    "non-performing loans ratio": "NPL_RATIO",
-    "npl coverage ratio": "NPL_COVERAGE",
-    "return on equity": "ROE",
-    "return on assets": "ROA",
-    "cost to income ratio": "CTI",
-    "cost-to-income ratio": "CTI",
+# Canonical indicator code -> ordered list of substrings to look for in the
+# `Label` column (case-insensitive). The first matching label wins, so the
+# most specific patterns come first.
+INDICATOR_LABELS: dict[str, tuple[str, ...]] = {
+    "CET1_FL":       ("common equity tier 1 ratio", "cet1 ratio", "cet 1"),
+    "TIER1_FL":      ("tier 1 ratio",),
+    "TOTAL_CAP_FL":  ("total capital ratio",),
+    "LEV_RATIO":     ("leverage ratio",),
+    "LCR":           ("liquidity coverage ratio",),
+    "NSFR":          ("net stable funding ratio",),
+    "ROE":           ("return on equity",),
+    "ROA":           ("return on assets",),
+    "CTI":           ("cost to income", "cost-to-income"),
+    "RWA_TOTAL":     ("total risk weighted assets", "total rwa"),
+    "NPL_RATIO":     ("non-performing loans ratio", "non performing loans ratio"),
+    "NPL_COVERAGE":  ("coverage ratio of non-performing", "coverage ratio of non performing"),
+    "FORBORNE_RATIO":("forborne exposures ratio",),
 }
 
 PERCENT_INDICATORS: set[str] = {
     "CET1_FL", "TIER1_FL", "TOTAL_CAP_FL", "LEV_RATIO",
-    "LCR", "NSFR", "NPL_RATIO", "NPL_COVERAGE", "ROE", "ROA", "CTI",
+    "LCR", "NSFR", "ROE", "ROA", "CTI",
+    "NPL_RATIO", "NPL_COVERAGE", "FORBORNE_RATIO",
 }
 
-# FSB 2024 list of EU-headquartered banks classified as G-SIBs plus the EU
-# G-SIB subsidiaries called out in the brief.
-G_SIB_LEI_OR_NAME: set[str] = {
+# Aggregate row filters. EBA uses several conventions across files; we accept
+# any of these tokens (and empty strings) on the dimensional columns.
+AGG_PORTFOLIOS = {"", "a0", "A0", "Total", "TOT", "T"}
+AGG_COUNTRIES  = {"", "Total", "TOT", "T"}
+AGG_COUNTRY_RANK = {"", "1"}
+
+G_SIB_FRAGMENTS = (
     "BNP PARIBAS", "SOCIETE GENERALE", "CREDIT AGRICOLE", "BPCE",
     "DEUTSCHE BANK", "UNICREDIT", "INTESA SANPAOLO",
     "BANCO SANTANDER", "BBVA", "ING", "RABOBANK", "NORDEA",
-    "STANDARD CHARTERED", "HSBC",
-    # Brief additions
-    "ABN AMRO", "COMMERZBANK", "SWEDBANK", "SEB",
-    "HANDELSBANKEN", "DANSKE BANK", "ERSTE GROUP", "KBC",
-    "MBANK", "PKO BANK POLSKI",
+    "ABN AMRO", "COMMERZBANK", "SWEDBANK", "SEB", "HANDELSBANKEN",
+    "DANSKE BANK", "ERSTE GROUP", "KBC", "MBANK", "PKO BANK POLSKI",
+)
+
+# Bank display names. Real EBA TE 2024 ships the names in TR_Metadata.xlsx;
+# the synthetic dataset embeds them in the LEI/Label combo so we recover
+# names via this lookup. Production runs against real data will replace this
+# with a metadata-driven join.
+SYNTHETIC_BANK_NAMES: dict[str, str] = {
+    "FR_BNPP": "BNP Paribas", "FR_GLE": "Societe Generale",
+    "FR_ACA": "Credit Agricole Group", "FR_BPCE": "BPCE",
+    "DE_DBK": "Deutsche Bank", "DE_CBK": "Commerzbank",
+    "DE_DZB": "DZ Bank", "DE_LBW": "LBBW",
+    "IT_UCG": "UniCredit", "IT_ISP": "Intesa Sanpaolo",
+    "IT_BAMI": "Banco BPM", "IT_BMPS": "Monte dei Paschi",
+    "ES_SAN": "Banco Santander", "ES_BBVA": "BBVA",
+    "ES_CABK": "CaixaBank", "ES_SAB": "Banco Sabadell",
+    "NL_INGA": "ING Groep", "NL_ABN": "ABN AMRO", "NL_RABO": "Rabobank",
+    "BE_KBC": "KBC Group", "BE_BEL": "Belfius",
+    "AT_ERST": "Erste Group", "AT_RBI": "Raiffeisen Bank Intl",
+    "SE_NDA": "Nordea", "SE_SHB": "Handelsbanken",
+    "SE_SEB": "SEB", "SE_SWED": "Swedbank",
+    "DK_DAN": "Danske Bank", "DK_JYS": "Jyske Bank",
+    "FI_OP": "OP Group", "NO_DNB": "DNB Bank",
+    "IE_AIB": "AIB Group", "IE_BIRG": "Bank of Ireland",
+    "PT_BCP": "Millennium BCP", "PT_CGD": "Caixa Geral de Depositos",
+    "GR_NBG": "National Bank of Greece", "GR_ALPHA": "Alpha Bank",
+    "GR_PIR": "Piraeus Bank", "GR_ETE": "Eurobank Ergasias",
+    "PL_PKO": "PKO Bank Polski", "PL_PEKAO": "Bank Pekao", "PL_MBK": "mBank",
+    "HU_OTP": "OTP Bank", "CZ_KB": "Komercni Banka",
+    "RO_BRD": "BRD Groupe SG", "CY_BOC": "Bank of Cyprus",
+    "LU_BIL": "Banque Internationale Lux", "MT_BOV": "Bank of Valletta",
+    "SI_NLB": "NLB Group", "SK_VUB": "VUB Banka",
+    "HR_ZABA": "Zagrebacka Banka", "LV_SWLV": "Swedbank Latvia",
+    "LT_SBLT": "Siauliu Bankas", "EE_LHV": "LHV Group",
+    "BG_DSK": "DSK Bank", "IS_LAN": "Landsbankinn",
+    "LI_LLB": "Liechtensteinische LB", "FR_HSBC": "HSBC Continental Europe",
+    "DE_HCOB": "Hamburg Commercial Bank", "DE_NORD": "NORD/LB",
+    "IT_MED": "Mediobanca",
 }
 
 
-def _canonical_indicator(label: object) -> str | None:
-    if not isinstance(label, str):
-        return None
-    key = label.strip()
-    if not key:
-        return None
-    if key in INDICATOR_ALIASES:
-        return INDICATOR_ALIASES[key]
-    low = key.lower()
-    if low in INDICATOR_ALIASES:
-        return INDICATOR_ALIASES[low]
-    for fragment, indicator in INDICATOR_ALIASES.items():
-        if fragment in low:
-            return indicator
-    return None
-
-
-def _parse_period(value: object) -> str | None:
-    if isinstance(value, pd.Timestamp):
-        return value.date().isoformat()
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    if not text:
-        return None
-    if len(text) == 8 and text.isdigit():
-        return f"{text[:4]}-{text[4:6]}-{text[6:8]}"
+def load_metadata(path: Path) -> dict[str, str]:
+    """Return {Item: Label} from TR_Metadata.xlsx if available, else {}."""
+    if not path.exists():
+        logger.warning("metadata not found: %s", path)
+        return {}
     try:
-        return pd.to_datetime(text, dayfirst=False).date().isoformat()
-    except (ValueError, TypeError):
+        xl = pd.ExcelFile(path)
+    except Exception as exc:
+        logger.warning("cannot open %s: %s", path.name, exc)
+        return {}
+    for sheet_name in xl.sheet_names:
+        frame = xl.parse(sheet_name)
+        cols = {c.lower(): c for c in frame.columns}
+        if "item" in cols and "label" in cols:
+            mapping = dict(zip(frame[cols["item"]], frame[cols["label"]]))
+            logger.info("metadata loaded from sheet %r (%d items)",
+                        sheet_name, len(mapping))
+            return mapping
+    logger.warning("no (Item, Label) sheet in %s", path.name)
+    return {}
+
+
+def resolve_item_codes(
+    metadata: dict[str, str], frame: pd.DataFrame,
+) -> dict[str, str]:
+    """Return {Item: canonical INDICATOR_CODE} for the indicators we care about."""
+    label_source: dict[str, str] = dict(metadata)
+    if not label_source and "Label" in frame.columns and "Item" in frame.columns:
+        label_source = dict(zip(frame["Item"], frame["Label"]))
+
+    resolved: dict[str, str] = {}
+    for indicator, fragments in INDICATOR_LABELS.items():
+        for item, label in label_source.items():
+            if not isinstance(label, str):
+                continue
+            low = label.lower()
+            if any(fragment in low for fragment in fragments):
+                resolved.setdefault(item, indicator)
+    logger.info("resolved %d Item -> INDICATOR_CODE entries", len(resolved))
+    return resolved
+
+
+def _agg_mask(frame: pd.DataFrame) -> pd.Series:
+    """Boolean mask isolating aggregate (total) rows for ratio calculations."""
+    def normalise(value: object) -> str:
+        return "" if pd.isna(value) else str(value).strip()
+
+    portfolio = frame.get("Portfolio", pd.Series([""] * len(frame))).map(normalise)
+    country = frame.get("Country",   pd.Series([""] * len(frame))).map(normalise)
+    rank = frame.get("Country_rank", pd.Series([""] * len(frame))).map(normalise)
+    return (
+        portfolio.isin(AGG_PORTFOLIOS)
+        & country.isin(AGG_COUNTRIES)
+        & rank.isin(AGG_COUNTRY_RANK)
+    )
+
+
+def _period_to_date(period: object) -> str | None:
+    if pd.isna(period):
         return None
+    text = str(int(period)) if isinstance(period, float) else str(period)
+    text = text.strip()
+    if len(text) != 6 or not text.isdigit():
+        return None
+    year, month = int(text[:4]), int(text[4:6])
+    last_day = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
+                7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}[month]
+    return f"{year:04d}-{month:02d}-{last_day:02d}"
 
 
 def _reference_to_year_quarter(reference: str) -> str:
@@ -151,112 +223,92 @@ def _bank_size(total_assets: float) -> str:
     return "SMALL"
 
 
-def _is_gsib(bank_name: object, flag: object) -> int:
-    if isinstance(flag, (int, float)) and not pd.isna(flag):
-        return int(bool(flag))
-    if isinstance(flag, str) and flag.strip() in {"1", "true", "True", "Y"}:
-        return 1
-    if isinstance(bank_name, str):
-        upper = bank_name.upper()
-        for needle in G_SIB_LEI_OR_NAME:
-            if needle in upper:
-                return 1
-    return 0
+def _is_gsib(bank_name: object) -> int:
+    if not isinstance(bank_name, str):
+        return 0
+    upper = bank_name.upper()
+    return int(any(fragment in upper for fragment in G_SIB_FRAGMENTS))
 
 
 def _scale_percent(value: float, indicator: str) -> float:
     if indicator not in PERCENT_INDICATORS or pd.isna(value):
         return value
-    if abs(value) > 5:
-        return value / 100.0
-    return value
+    return value / 100.0 if abs(value) > 5 else value
 
 
-def _load_theme(path: Path) -> pd.DataFrame:
+def _load_eav(path: Path) -> pd.DataFrame:
     if not path.exists():
-        logger.warning("missing theme file: %s", path.name)
+        logger.warning("missing input: %s", path.name)
         return pd.DataFrame()
     logger.info("reading %s", path.name)
-    frame = pd.read_csv(path)
-    column_map = {c.lower(): c for c in frame.columns}
-    indicator_col = (
-        column_map.get("indicator")
-        or column_map.get("template_row")
-        or column_map.get("label")
-    )
-    if indicator_col is None:
-        logger.warning("no indicator column in %s", path.name)
-        return pd.DataFrame()
-    value_col = column_map.get("value") or column_map.get("amount")
-    if value_col is None:
-        logger.warning("no value column in %s", path.name)
-        return pd.DataFrame()
-    rename = {
-        column_map.get("lei_code", "LEI_Code"): "LEI_Code",
-        column_map.get("bank_name", "Bank_Name"): "Bank_Name",
-        column_map.get("country", "Country"): "Country",
-        column_map.get("period", "Period"): "Period",
-        indicator_col: "Indicator",
-        value_col: "Value",
-    }
-    if "total_assets_beur" in column_map:
-        rename[column_map["total_assets_beur"]] = "Total_Assets_BEUR"
-    if "is_gsib" in column_map:
-        rename[column_map["is_gsib"]] = "Is_GSIB"
-    frame = frame.rename(columns=rename)
-    keep = [c for c in (
-        "LEI_Code", "Bank_Name", "Country", "Period", "Indicator", "Value",
-        "Total_Assets_BEUR", "Is_GSIB",
-    ) if c in frame.columns]
-    return frame[keep].copy()
-
-
-def load() -> pd.DataFrame:
-    frames = [_load_theme(RAW_DIR / name) for name in THEME_FILES]
-    frames = [f for f in frames if not f.empty]
-    if not frames:
-        raise FileNotFoundError(
-            "No Transparency Exercise files found in data/raw/. "
-            "Run python/01_download_data.py first."
-        )
-    return pd.concat(frames, ignore_index=True)
+    frame = pd.read_csv(path, encoding="utf-8", low_memory=False)
+    logger.info("  shape=%s columns=%s", frame.shape, list(frame.columns))
+    return frame
 
 
 def main() -> None:
-    frame = load()
-    frame["INDICATOR_CODE"] = frame["Indicator"].map(_canonical_indicator)
-    frame["REFERENCE_DATE"] = frame["Period"].map(_parse_period)
-    frame = frame.dropna(subset=["INDICATOR_CODE", "REFERENCE_DATE"])
-    frame["Value"] = pd.to_numeric(frame["Value"], errors="coerce")
-    frame = frame.dropna(subset=["Value"])
-    frame["VALUE"] = frame.apply(
-        lambda row: _scale_percent(row["Value"], row["INDICATOR_CODE"]),
+    metadata = load_metadata(METADATA_PATH)
+    frames = [_load_eav(OTH_PATH), _load_eav(CRE_PATH)]
+    frames = [f for f in frames if not f.empty]
+    if not frames:
+        raise FileNotFoundError(
+            "No Transparency Exercise files in data/raw/. "
+            "Run python/01_download_data.py first."
+        )
+    eav = pd.concat(frames, ignore_index=True)
+
+    item_to_indicator = resolve_item_codes(metadata, eav)
+    if not item_to_indicator:
+        raise ValueError(
+            "Could not resolve any Item -> indicator mapping. "
+            "Inspect TR_Metadata.xlsx and the `Label` column of tr_oth/tr_cre."
+        )
+
+    eav["INDICATOR_CODE"] = eav["Item"].map(item_to_indicator)
+    eav = eav.dropna(subset=["INDICATOR_CODE"])
+    eav = eav.loc[_agg_mask(eav)].copy()
+    eav["Amount"] = pd.to_numeric(eav["Amount"], errors="coerce")
+    eav = eav.dropna(subset=["Amount"])
+    eav["VALUE"] = eav.apply(
+        lambda row: _scale_percent(row["Amount"], row["INDICATOR_CODE"]),
         axis=1,
     )
-    frame["YEAR_QUARTER"] = frame["REFERENCE_DATE"].map(_reference_to_year_quarter)
-    if "Total_Assets_BEUR" not in frame.columns:
-        frame["Total_Assets_BEUR"] = pd.NA
-    frame["Total_Assets_BEUR"] = pd.to_numeric(
-        frame["Total_Assets_BEUR"], errors="coerce"
-    )
-    frame["BANK_SIZE"] = frame["Total_Assets_BEUR"].map(_bank_size)
-    if "Is_GSIB" not in frame.columns:
-        frame["Is_GSIB"] = pd.NA
-    frame["IS_GSIB"] = frame.apply(
-        lambda row: _is_gsib(row.get("Bank_Name"), row.get("Is_GSIB")),
-        axis=1,
+    eav["REFERENCE_DATE"] = eav["Period"].map(_period_to_date)
+    eav = eav.dropna(subset=["REFERENCE_DATE"])
+    eav["YEAR_QUARTER"] = eav["REFERENCE_DATE"].map(_reference_to_year_quarter)
+
+    # Pivot: one row per (LEI, period, indicator). Drop duplicates (some EAV
+    # files repeat the aggregate at multiple Row/Column positions).
+    eav = eav.drop_duplicates(
+        subset=["LEI_code", "NSA", "REFERENCE_DATE", "INDICATOR_CODE"],
+        keep="last",
     )
 
-    output = frame[[
-        "LEI_Code", "Bank_Name", "Country", "REFERENCE_DATE", "YEAR_QUARTER",
-        "INDICATOR_CODE", "VALUE", "Total_Assets_BEUR", "IS_GSIB", "BANK_SIZE",
-    ]].rename(columns={
-        "LEI_Code": "LEI_CODE", "Bank_Name": "BANK_NAME", "Country": "COUNTRY_CODE",
-        "Total_Assets_BEUR": "TOTAL_ASSETS_BEUR",
-    })
-    output = output.drop_duplicates(
-        subset=["LEI_CODE", "INDICATOR_CODE", "REFERENCE_DATE"], keep="last"
-    ).sort_values(["INDICATOR_CODE", "COUNTRY_CODE", "BANK_NAME", "REFERENCE_DATE"])
+    bank_names = eav.get("Bank_Name")
+    if bank_names is None:
+        eav["BANK_NAME"] = eav["LEI_code"].map(SYNTHETIC_BANK_NAMES).fillna(
+            eav["LEI_code"]
+        )
+    else:
+        eav["BANK_NAME"] = bank_names
+
+    rwa_lookup = (
+        eav[eav["INDICATOR_CODE"] == "RWA_TOTAL"]
+        .groupby("LEI_code")["VALUE"]
+        .max()
+        .rename("RWA_MAX")
+    )
+    eav = eav.join(rwa_lookup, on="LEI_code")
+    eav["TOTAL_ASSETS_BEUR"] = (eav["RWA_MAX"] / 0.35).round(1)
+    eav["BANK_SIZE"] = eav["TOTAL_ASSETS_BEUR"].map(_bank_size)
+    eav["IS_GSIB"] = eav["BANK_NAME"].map(_is_gsib)
+
+    output = eav.rename(columns={
+        "LEI_code": "LEI_CODE", "NSA": "COUNTRY_CODE",
+    })[[
+        "LEI_CODE", "BANK_NAME", "COUNTRY_CODE", "REFERENCE_DATE", "YEAR_QUARTER",
+        "INDICATOR_CODE", "VALUE", "TOTAL_ASSETS_BEUR", "IS_GSIB", "BANK_SIZE",
+    ]].sort_values(["INDICATOR_CODE", "COUNTRY_CODE", "BANK_NAME", "REFERENCE_DATE"])
 
     output.to_csv(OUTPUT_PATH, index=False)
     logger.info(

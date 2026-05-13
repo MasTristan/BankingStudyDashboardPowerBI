@@ -1,5 +1,7 @@
-# Raw EBA data (large files, re-downloadable)
-data/raw/
+# Raw EBA/ECB data (large files, re-downloadable)
+data/raw/*
+!data/raw/INSPECTION_NOTES.md
+!data/raw/.gitkeep
 
 # Python
 __pycache__/
