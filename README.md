@@ -2,28 +2,50 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Data](https://img.shields.io/badge/Data-EBA%20public-orange)](https://www.eba.europa.eu/)
+[![Data](https://img.shields.io/badge/Data-ECB%20%2F%20EBA%20public-orange)](https://www.eba.europa.eu/)
 
-Power BI dashboard analysing prudential ratios of European banks using EBA
-public data: the quarterly **EBA Risk Dashboard** (country aggregates) combined
-with the **EBA Transparency Exercise 2024** (bank-by-bank disclosures).
+Power BI **semantic model** and report analysing prudential ratios of European
+banks. Two public sources are combined into a single star schema:
 
-> Built with a strict zero-paid-licence stack: Python 3, Power BI Desktop
-> (free), GitHub (public).
+- **ECB Data Portal - EBA Key Risk Indicators (KRI)** for quarterly country
+  aggregates (Q1 2018 to Q4 2024).
+- **EBA Transparency Exercise 2024** for bank-by-bank disclosures across
+  123 institutions and 4 reference dates.
+
+> Strict zero-paid-licence stack: Python 3, Power BI Desktop (free),
+> GitHub (public). No Fabric, no Power BI Pro, no cloud egress.
 
 ---
 
 ## Key features
 
-- **Two EBA sources combined** in a single star schema model.
-- **15 regulatory indicators** covering capital, liquidity, asset quality,
-  profitability and leverage, mapped to their CRR2 references.
-- **28 quarters** of trend data (Q1 2018 -> Q4 2024).
+- **Two regulatory sources combined** in one star schema.
+- **15 indicators** mapped to their CRR2 references (CET1, Tier 1, Total
+  Capital, Leverage, LCR, NSFR, NPL, NPL Coverage, Forborne, ROE, ROA, CTI,
+  NIM, RWA breakdown).
+- **28 quarters** of trend data.
 - **Bank-by-bank granularity** with G-SIB flag and size buckets.
-- **Five-page report**: executive overview, country comparison, bank
-  rankings, trend analysis, regulatory heatmap.
-- **Reproducible pipeline**: four Python scripts produce all CSVs consumed by
-  Power BI.
+- **Five-page report** built around the EBA visual language.
+- **Reproducible pipeline**: four idempotent Python scripts produce all CSVs
+  consumed by Power BI Desktop.
+
+## Power BI 2025-2026 features used
+
+This project doubles as a "Power BI after a year away" portfolio piece. The
+following recently-released features are integrated visibly:
+
+| Feature | Where it shows up |
+|---|---|
+| **Semantic Model** terminology | README, ARCHITECTURE, in-app model name |
+| **New Card Visual** (GA Nov 2025) | Page 1 KPI cards with reference value + status |
+| **Visual Calculations** (RUNNINGSUM, MOVINGAVERAGE, PREVIOUS) | Page 4 trend line |
+| **DAX User-Defined Functions** (preview) | `RegBuffer(ratio, threshold)` |
+| **DAX Query View** | Validation queries documented in ARCHITECTURE |
+| **On-Object formatting** | Workflow used throughout the report |
+| **Sparklines** | Page 3 bank table on CET1 and NPL columns |
+| **Button Slicer** | Page 5 period selector |
+| **Annotations** | Page 4 line chart (COVID 2020, ECB hikes 2022, Basel III 2023) |
+| **TMDL-compatible layout** | Documented in ARCHITECTURE |
 
 ---
 
@@ -31,15 +53,16 @@ with the **EBA Transparency Exercise 2024** (bank-by-bank disclosures).
 
 ```
 .
-+-- python/                       Python pipeline
-|   +-- 01_download_data.py       Download EBA datasets (with synthetic fallback)
-|   +-- 02_clean_risk_dashboard.py
-|   +-- 03_clean_transparency.py
-|   +-- 04_build_model.py         Build star schema CSVs
++-- python/
+|   +-- 01_download_data.py             ECB KRI + EBA TE download (synthetic fallback)
+|   +-- 02_clean_risk_indicators.py     SDMX-CSV cleaner (ECB)
+|   +-- 03_clean_transparency.py        EAV cleaner (EBA TE 2024)
+|   +-- 04_build_model.py               Star schema builder
 |   +-- requirements.txt
 +-- data/
-|   +-- raw/                      EBA source files (gitignored)
-|   +-- processed/                Cleaned CSVs consumed by Power BI
+|   +-- raw/                            Source files (gitignored)
+|   |   +-- INSPECTION_NOTES.md         Mandatory inspection notes (committed)
+|   +-- processed/                      Cleaned CSVs (committed)
 |   |   +-- fact_ratios.csv
 |   |   +-- dim_bank.csv
 |   |   +-- dim_country.csv
@@ -47,8 +70,9 @@ with the **EBA Transparency Exercise 2024** (bank-by-bank disclosures).
 |   |   +-- dim_indicator.csv
 |   +-- README_data.md
 +-- powerbi/
-|   +-- eba_dashboard.pbix        Power BI report (to be built locally)
-|   +-- screenshots/              Page screenshots embedded in README
+|   +-- eba_dashboard.pbix              Report file (built locally)
+|   +-- theme.json                      EBA Banking colour theme
+|   +-- screenshots/                    Page screenshots for README / LinkedIn
 +-- ARCHITECTURE.md
 +-- README.md
 +-- requirements.txt
@@ -61,25 +85,27 @@ with the **EBA Transparency Exercise 2024** (bank-by-bank disclosures).
 
 | Source | Granularity | Coverage | URL |
 |---|---|---|---|
-| EBA Risk Dashboard Q4 2024 | Country aggregate, quarterly | Q1 2014 -> Q4 2024 | [eba.europa.eu](https://www.eba.europa.eu/risk-and-data-analysis/risk-analysis/risk-monitoring/risk-dashboard) |
-| EBA Transparency Exercise 2024 | Bank-by-bank, 4 reference dates | Sep 2023 -> Jun 2024, 123 banks, 26 countries | [eba.europa.eu](https://www.eba.europa.eu/risk-and-data-analysis/risk-analysis/eu-wide-transparency-exercise/2024-eu-wide-transparency-exercise) |
+| ECB Data Portal - EBA KRI dataflow | Country aggregate + EU/EEA aggregate, quarterly | 2018-Q1 to 2024-Q4 | [data.ecb.europa.eu](https://data.ecb.europa.eu/data/datasets/KRI) |
+| EBA Transparency Exercise 2024 (full database) | Bank-by-bank, 4 reference dates | Sep 2023 to Jun 2024, 123 banks, 26 countries | [eba.europa.eu](https://www.eba.europa.eu/risk-and-data-analysis/risk-analysis/eu-wide-transparency-exercise/2024-eu-wide-transparency-exercise) |
 
-The download script keeps a copy under `data/raw/` and is idempotent.
+The Risk Dashboard itself (the EBA quarterly PDF) is illustrative only —
+the structured data behind it is published on the ECB Data Portal as the
+**Key Risk Indicators (KRI)** SDMX dataflow, which is what the pipeline
+ingests.
 
 ### Synthetic fallback
 
-EBA serves its files behind a CDN that occasionally rejects automated requests.
-When `01_download_data.py` cannot reach the live URLs, it materialises a
-deterministic synthetic dataset that follows the same schema and ratio ranges.
-The fallback is clearly tagged via a `SYNTHETIC.flag` file in `data/raw/` so it
-cannot be confused with regulatory data. Production users should drop the
-official EBA files in `data/raw/` and re-run the pipeline.
+When the ECB / EBA endpoints cannot be reached, `01_download_data.py`
+materialises a deterministic synthetic dataset that follows the exact same
+shapes (SDMX-CSV for KRI, EAV for TE 2024) and is clearly tagged via a
+`SYNTHETIC.flag` file. See `data/raw/INSPECTION_NOTES.md` for the column
+contracts and refresh checklist.
 
 ---
 
 ## Indicators covered
 
-| Code | Name | Category | Min | CRR2 reference |
+| Code | Name | Category | Min | CRR2 |
 |---|---|---|---|---|
 | CET1_FL | Common Equity Tier 1 ratio (fully loaded) | Capital | 4.5% | Art. 50 |
 | TIER1_FL | Tier 1 ratio (fully loaded) | Capital | 6.0% | Art. 25 |
@@ -107,22 +133,26 @@ official EBA files in `data/raw/` and re-run the pipeline.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+source .venv/bin/activate         # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-python python/01_download_data.py
-python python/02_clean_risk_dashboard.py
+python python/01_download_data.py        # ECB KRI + EBA TE 2024 (or synthetic)
+python python/02_clean_risk_indicators.py
 python python/03_clean_transparency.py
-python python/04_build_model.py
+python python/04_build_model.py          # star schema + validation gates
 ```
 
 After the four scripts complete, `data/processed/` contains the five CSVs
 consumed by Power BI.
 
-### 2. Power BI report
+### 2. Power BI Desktop
 
-Open `powerbi/eba_dashboard.pbix` in Power BI Desktop (free). The model
-relations are:
+1. Open `powerbi/eba_dashboard.pbix`.
+2. Apply the colour theme: **View → Themes → Browse for themes** →
+   `powerbi/theme.json`.
+3. Refresh: **Home → Refresh** (after rerunning the Python pipeline).
+
+Semantic model relations:
 
 ```
 FACT_RATIOS[BANK_ID]      -> DIM_BANK[BANK_ID]            (many-to-one)
@@ -132,29 +162,17 @@ FACT_RATIOS[INDICATOR_ID] -> DIM_INDICATOR[INDICATOR_ID]  (many-to-one)
 DIM_BANK[COUNTRY_CODE]    -> DIM_COUNTRY[COUNTRY_CODE]    (many-to-one)
 ```
 
-If you replace the CSVs, click **Home -> Refresh** to reload the model.
-
 ---
 
 ## Report pages
 
-| # | Page | Purpose |
+| # | Page | Highlights |
 |---|---|---|
-| 1 | Executive Overview | EU-wide KPI cards, CET1 trend, country bar chart |
-| 2 | Country Comparison | Choropleth map, small multiples, scatter CET1 vs NPL |
-| 3 | Bank Rankings | Top 20 by CET1, scatter CET1 vs LCR, full bank table |
-| 4 | Trend Analysis | Multi-indicator time series, RWA breakdown, regional NPL |
-| 5 | Regulatory Heatmap | Compliance heatmap country x indicator |
-
-Screenshots live in `powerbi/screenshots/` and are referenced inline once the
-report is exported.
-
----
-
-## Star schema
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for full table definitions, relations,
-and the DAX measure catalogue.
+| 1 | Executive Overview | New Card Visual KPIs, CET1 trend with reg-min line, country bar |
+| 2 | Country Comparison | Filled map, small multiples, scatter CET1 vs NPL |
+| 3 | Bank Rankings | Top 20 horizontal bar, scatter CET1 vs LCR, table with sparklines |
+| 4 | Trend Analysis | Visual Calculations (running sum, moving avg, previous), annotations |
+| 5 | Regulatory Heatmap | Country x indicator matrix, Button Slicer for period |
 
 ---
 

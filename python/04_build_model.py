@@ -3,8 +3,8 @@ Builds the star schema CSVs consumed by Power BI Desktop.
 
 Inputs
 ------
-- data/processed/risk_dashboard_clean.csv
-- data/processed/transparency_clean.csv
+- data/processed/risk_indicators_clean.csv  (ECB KRI, country aggregates)
+- data/processed/transparency_clean.csv     (EBA TE 2024, bank-by-bank)
 
 Outputs
 -------
@@ -42,7 +42,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = ROOT / "data" / "processed"
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
-RD_PATH = PROCESSED_DIR / "risk_dashboard_clean.csv"
+RD_PATH = PROCESSED_DIR / "risk_indicators_clean.csv"
 TR_PATH = PROCESSED_DIR / "transparency_clean.csv"
 
 # Country metadata used to build DIM_COUNTRY.
@@ -98,6 +98,7 @@ INDICATOR_META: list[dict[str, object]] = [
     {"INDICATOR_CODE": "CTI",          "INDICATOR_NAME": "Cost-to-income ratio",                       "CATEGORY": "PROFITABILITY", "UNIT": "PCT",   "REGULATORY_MIN": None,  "HIGHER_IS_BETTER": False, "CRR2_REFERENCE": ""},
     {"INDICATOR_CODE": "NIM",          "INDICATOR_NAME": "Net interest margin",                        "CATEGORY": "PROFITABILITY", "UNIT": "PCT",   "REGULATORY_MIN": None,  "HIGHER_IS_BETTER": True,  "CRR2_REFERENCE": ""},
     {"INDICATOR_CODE": "LEV_RATIO",    "INDICATOR_NAME": "Leverage ratio",                              "CATEGORY": "LEVERAGE",      "UNIT": "PCT",   "REGULATORY_MIN": 0.030, "HIGHER_IS_BETTER": True,  "CRR2_REFERENCE": "Art. 429"},
+    {"INDICATOR_CODE": "LTD_RATIO",    "INDICATOR_NAME": "Loan-to-deposit ratio",                       "CATEGORY": "LIQUIDITY",     "UNIT": "PCT",   "REGULATORY_MIN": None,  "HIGHER_IS_BETTER": False, "CRR2_REFERENCE": ""},
 ]
 
 
@@ -219,7 +220,12 @@ def _build_fact(
     ]]
 
     fact = pd.concat([rd_fact, tr_fact], ignore_index=True)
+    before = len(fact)
     fact = fact.dropna(subset=["BANK_ID", "DATE_ID", "INDICATOR_ID"])
+    dropped = before - len(fact)
+    if dropped:
+        logger.warning("dropped %d rows with unresolved FKs (unknown indicator / bank / date)",
+                       dropped)
     fact["BANK_ID"] = fact["BANK_ID"].astype(int)
     fact["DATE_ID"] = fact["DATE_ID"].astype(int)
     fact["INDICATOR_ID"] = fact["INDICATOR_ID"].astype(int)

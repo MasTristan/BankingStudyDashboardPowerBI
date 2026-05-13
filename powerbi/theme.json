@@ -1,0 +1,19 @@
+{
+  "name": "EBA Banking Theme",
+  "dataColors": [
+    "#0070C0",
+    "#00B0F0",
+    "#002060",
+    "#7F7F7F",
+    "#FF0000",
+    "#00B050",
+    "#FFC000",
+    "#7030A0"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#0D1B2A",
+  "tableAccent": "#0070C0",
+  "good": "#00B050",
+  "neutral": "#FFC000",
+  "bad": "#FF0000"
+}
