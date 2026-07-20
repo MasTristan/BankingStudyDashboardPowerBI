@@ -8,11 +8,13 @@ Technical reference for the European Banking Regulatory Dashboard project.
 |---|---|---|
 | Acquisition / cleaning | Python 3.11 + pandas + openpyxl + requests | Free |
 | Modelling | CSV files on disk, star schema | Free |
-| Reporting | Power BI Desktop (Import mode), semantic model | Free |
+| Reporting | Power BI Desktop (Import mode), PBIP project: PBIR report + TMDL semantic model | Free |
 | Versioning | Git + GitHub public repository | Free |
 
 No SaaS service, no paid licence, no cloud egress. The Power BI report is
-distributed as a `.pbix` file committed to the repository.
+distributed as a PBIP project (`powerbi/eba_dashboard.pbip` plus its
+`.Report` and `.SemanticModel` folders) committed file by file, which makes
+every measure and every visual reviewable in a pull request.
 
 ---
 
@@ -34,8 +36,12 @@ ECB Data Portal (SDMX-CSV)          EBA Transparency Exercise 2024 (EAV CSVs)
                   data/processed/  (5 CSVs, star schema)
                                 |
                                 v
-                    powerbi/eba_dashboard.pbix
-                       (semantic model)
+                    powerbi/eba_dashboard.pbip
+              (TMDL semantic model + PBIR report)
+                                ^
+                                |
+          specs/*.yaml -> scripts/compile_page.py -> pbir_lint.py
+                     -> pbi_render.py (page captures)
 ```
 
 Every step is idempotent: rerunning a script overwrites its outputs without
@@ -128,16 +134,34 @@ keeps country slicers working when filtering by bank.
 
 ## DAX measure catalogue
 
-Measures live under a dedicated `Measures` table in the semantic model.
+Measures live under a dedicated `_Measures` table in the semantic model
+(`definition/tables/_Measures.tmdl`). Every measure carries its format string
+in the model; visuals never override formats.
 
 ### Base
 
 ```dax
-Avg Ratio        = AVERAGE(FACT_RATIOS[VALUE])
-Latest Value     = CALCULATE([Avg Ratio], LASTDATE(DIM_DATE[REFERENCE_DATE]))
-Nb Banks         = DISTINCTCOUNT(FACT_RATIOS[BANK_ID])
-Nb Countries     = DISTINCTCOUNT(FACT_RATIOS[COUNTRY_CODE])
+Avg Ratio        = AVERAGEX(fact_ratios, fact_ratios[VALUE])
+Latest Value     = CALCULATE(AVERAGE(fact_ratios[VALUE]),
+                             LASTDATE(dim_date[REFERENCE_DATE]))
+Nb Banks         = DISTINCTCOUNT(fact_ratios[BANK_ID])
+Nb Countries     = DISTINCTCOUNT(fact_ratios[COUNTRY_CODE])
+
+-- Last quarter WITH data in context: robust to the Transparency Exercise
+-- stopping at 2024-Q2 while the KRI dataflow runs to 2024-Q4.
+Latest NB Value  =
+VAR LastDataDate = CALCULATE(MAX(fact_ratios[REFERENCE_DATE]))
+RETURN CALCULATE(AVERAGE(fact_ratios[VALUE]),
+                 fact_ratios[REFERENCE_DATE] = LastDataDate)
 ```
+
+### Indicator-pinned families
+
+Generic measures cannot mix indicators in one visual, so the model exposes
+pinned families usable at any grain (bank, country, EU): `CET1 Latest`,
+`NPL Latest`, `LCR Latest`, ... (via `Latest NB Value`), the smoothed
+`* Rolling 4Q` series used by the Trend Analysis page, and the `EU *` KPI
+measures pinned to the `AGG_EU` aggregate for the Executive Overview cards.
 
 ### Time intelligence
 
@@ -170,119 +194,58 @@ VAR Below = CALCULATE(DISTINCTCOUNT(FACT_RATIOS[BANK_ID]),
                       FACT_RATIOS[VALUE] < Threshold)
 RETURN DIVIDE(Below, [Nb Banks])
 
+-- Blank-safe: entities with no data in context must return BLANK, not
+-- BLANK minus the threshold (which fabricates a fake breach).
 Avg Regulatory Buffer =
-[Latest Value] - MAX(DIM_INDICATOR[REGULATORY_MIN])
+VAR MinThreshold = MAX(dim_indicator[REGULATORY_MIN])
+VAR BaseValue = [Latest NB Value]
+RETURN IF(NOT ISBLANK(MinThreshold) && NOT ISBLANK(BaseValue),
+          BaseValue - MinThreshold, BLANK())
 
 Compliance Status =
-VAR Threshold = MAX(DIM_INDICATOR[REGULATORY_MIN])
+VAR Threshold = MAX(dim_indicator[REGULATORY_MIN])
 RETURN IF(
     ISBLANK(Threshold), "N/A",
-    IF([Latest Value] >= Threshold, "COMPLIANT", "BELOW MINIMUM")
+    IF([Latest NB Value] >= Threshold, "COMPLIANT", "BELOW MINIMUM")
 )
 ```
 
-### DAX User-Defined Function (preview, Sep 2025)
-
-```dax
-FUNCTION RegBuffer(RatioValue AS DOUBLE, MinThreshold AS DOUBLE)
-    RETURN RatioValue - MinThreshold
-
-CET1 Buffer = RegBuffer([Latest Value], 0.045)
-LCR Buffer  = RegBuffer([Latest Value], 1.00)
-```
-
-When the installed Power BI Desktop build does not yet support `FUNCTION`,
-the equivalent inline arithmetic is used and the intention is documented in
-the report description.
-
 ---
 
-## Power BI 2025-2026 features integrated
+## Report build pipeline
 
-### New Card Visual (GA Nov 2025)
-Page 1 KPI cards use the new card visual exclusively. Each card shows:
-- Callout value (e.g. CET1 ratio current quarter)
-- Reference value (regulatory minimum from DIM_INDICATOR)
-- Status badge driven by `Compliance Status`
-- YoY arrow (driven by `YoY Change bps`)
+The report layer is never edited by hand. Each page is a YAML spec under
+`powerbi/specs/`, compiled to PBIR JSON by a deterministic toolchain:
 
-### Visual Calculations (GA late 2024)
-Page 4 line chart uses three Visual Calculations defined directly on the
-visual via *Add visual calculation*, replacing model-level moving-average
-mesures:
-
-```dax
-Running CET1            = RUNNINGSUM([Avg Ratio])
-Rolling 4Q              = MOVINGAVERAGE([Avg Ratio], 4)
-vs Previous Quarter     = [Avg Ratio] - PREVIOUS([Avg Ratio])
+```
+1. PROFILE   scripts/pbi_profile.py    DAX against Desktop's local AS instance
+2. DESIGN    specs/<page>.yaml         visual choice driven by data shape
+3. COMPILE   scripts/compile_page.py   spec -> PBIR JSON, idempotent page ids
+4. LINT      scripts/pbir_lint.py      bindings vs TMDL, layout, placeholders
+5. RENDER    scripts/pbi_render.py     drives Desktop, captures pages to PNG
+6. CRITIQUE  review the captures, patch the spec, recompile
 ```
 
-### DAX Query View
+Properties of the pipeline:
 
-Used for offline validation. Example query stored in the report metadata:
+- **Idempotent recompiles**: a fixed 20-char `page_id` per spec means the
+  same page folder is rebuilt in place; visual ids are content-addressed,
+  so git diffs stay minimal.
+- **Lint before render**: field bindings are checked against the TMDL
+  (existence and column/measure kind), layout is checked for overlap and
+  canvas overflow, tooltip references are resolved.
+- **Design system**: 12-column grid, KPI band on top, one dominant visual
+  per page, message titles ("Every market holds a double-digit CET1
+  buffer"), no decorative colour. Red/green appears only on the compliance
+  page, driven by rule-based conditional formatting on the buffer measure.
 
-```dax
-EVALUATE
-CALCULATETABLE(
-    SUMMARIZECOLUMNS(
-        DIM_COUNTRY[COUNTRY_NAME],
-        DIM_INDICATOR[INDICATOR_CODE],
-        "Latest Value",        [Latest Value],
-        "YoY Change bps",      [YoY Change bps],
-        "Regulatory Buffer",   [Avg Regulatory Buffer]
-    ),
-    DIM_INDICATOR[INDICATOR_CODE] = "CET1_FL",
-    DIM_DATE[YEAR_QUARTER]        = "2024-Q4"
-)
-ORDER BY [Latest Value] DESC
-```
+## TMDL semantic model
 
-### Sparklines
-Page 3 bank table embeds line-type sparklines on the `CET1_FL` and
-`NPL_RATIO` columns, four points (Q3 2023 → Q2 2024), auto-axis.
-
-### Button Slicer
-Page 5 uses Button Slicers for period selection (style: rectangular,
-active colour `#0070C0`).
-
-### Annotations
-Page 4 line chart carries point annotations:
-- Q1 2020 – "COVID-19 impact"
-- Q2 2022 – "ECB rate hike cycle begins"
-- Q4 2023 – "Basel III final rules (CRR3)"
-
-### On-Object formatting
-All visual-level styling is performed via On-Object editing
-(direct click on the element) rather than the legacy Format pane.
-
----
-
-## TMDL Compatibility
-
-This semantic model follows naming conventions and structural patterns
-compatible with **TMDL** (Tabular Model Definition Language), the format used
-by Microsoft Fabric Git integration for version control of Power BI semantic
-models.
-
-Specifically:
-
-- `UPPER_SNAKE_CASE` table names and DAX-friendly column identifiers (no
-  spaces inside the model objects).
-- Measures grouped under a dedicated `Measures` table - matches the
-  `measures/` folder pattern produced by Fabric's TMDL export.
-- Relationships defined with explicit cardinality and direction so that
-  the TMDL `.relationships` files round-trip cleanly.
-- Calculated columns kept minimal in favour of upstream cleanup in Python,
-  reducing TMDL diff noise when iterating on the visual layer.
-
-In a Fabric-enabled environment, the model would be exported as a
-folder-based TMDL structure (`tables/`, `measures/`, `relationships/`),
-enabling PR-based review workflows and conflict resolution on individual
-measure files rather than a monolithic JSON blob.
-
-The project does not deploy to Fabric (zero-paid-licence constraint) and
-remains entirely on Power BI Desktop. Migration to Fabric is the intended
-"next level".
+The model is stored as TMDL on disk (`eba_dashboard.SemanticModel/
+definition/`): one file per table, explicit relationships, measures in
+`_Measures.tmdl`. This is what Fabric Git integration produces, obtained
+here with Desktop alone (zero-paid-licence constraint holds); measures are
+reviewable line by line in a pull request.
 
 ---
 
@@ -303,14 +266,17 @@ the semantic model is publication-ready.
 ## Power BI configuration notes
 
 - **Storage mode**: Import. No DirectQuery, no gateway, no Fabric.
-- **Refresh**: manual, by reopening the `.pbix` or pressing Home → Refresh
+- **Refresh**: manual, open `eba_dashboard.pbip` and press Home → Refresh
   after re-running the Python pipeline.
-- **Theme**: `powerbi/theme.json` applied via View → Themes → Browse.
-- **Numeric formats**:
-  - Percent ratios: `#,##0.0%`
-  - bps deltas: `+#,##0;-#,##0`
-  - BEUR amounts: `#,##0.0 "Bn EUR"`
-  - Ranks: `0`
+- **Theme**: registered in `eba_dashboard.Report/StaticResources` and wired
+  into `report.json`; nothing to apply manually.
+- **Auto recovery**: disabled in the `.pbip` on purpose; the render script
+  force-kills Desktop and recovery would silently restore stale PBIR files.
+- **Numeric formats** (defined per measure in the model):
+  - Percent ratios: `0.0%` / `0.00%`; LCR and NSFR: `#,##0%`
+  - bps deltas: `+#,##0;-#,##0;0`
+  - Buffers: `+0.0%;-0.0%;0.0%`
+  - BEUR amounts and ranks: `#,##0` / `0`
 
 ---
 
