@@ -275,6 +275,26 @@ def main():
     # 7. tooltip bindings
     check_tooltips(pages_dir, parsed, root, findings)
 
+    # 7b. model hygiene: Desktop's auto date-time scaffolding
+    #     (LocalDateTable_*/DateTableTemplate_* + a hidden variation on the
+    #     source date column). Verified failure mode (2026-07, Desktop 2.153):
+    #     Actualiser throws a FALSE "cyclic reference" on these tables; the
+    #     engine refreshes fine via XMLA, only Desktop's UI scheduler trips.
+    #     This pipeline's convention is an explicit hand-built dim_date, which
+    #     makes the auto tables pure redundant risk. Flag them so Claude
+    #     disables auto date-time instead of debugging a phantom cycle later.
+    if model_dir:
+        auto_date_tables = sorted(t for t in model if t.startswith(("LocalDateTable_", "DateTableTemplate_")))
+        if auto_date_tables:
+            findings.append(
+                f"[MODEL] auto date-time tables present ({', '.join(auto_date_tables)}); "
+                f"known to cause a false 'cyclic reference' error on Actualiser in Desktop 2.153. "
+                f"Disable auto date-time (model.tmdl annotation __PBI_TimeIntelligenceEnabled = 0, "
+                f"remove these table refs from model.tmdl, delete their .tmdl files, and remove the "
+                f"variation + relationship on the source date column) in favour of the explicit "
+                f"date dimension."
+            )
+
     # 8. design hints (advisory only, never fail the lint): mechanical checks
     #    of the skill's design rules so the agent does not have to re-read them.
     hints = design_hints(pages_dir, parsed)
