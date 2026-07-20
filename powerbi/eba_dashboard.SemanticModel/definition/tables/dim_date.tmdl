@@ -17,11 +17,6 @@ table dim_date
 		summarizeBy: none
 		sourceColumn: REFERENCE_DATE
 
-		variation Variation
-			isDefault
-			relationship: df29c44c-8fdf-460b-b7bf-9c8525cfed13
-			defaultHierarchy: LocalDateTable_0fe96771-8839-4e45-8c82-b9ccb9f6bb6f.'Hiérarchie de dates'
-
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date

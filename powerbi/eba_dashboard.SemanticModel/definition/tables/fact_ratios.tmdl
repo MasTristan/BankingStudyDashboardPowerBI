@@ -70,11 +70,6 @@ table fact_ratios
 		summarizeBy: none
 		sourceColumn: REFERENCE_DATE
 
-		variation Variation
-			isDefault
-			relationship: 730ef826-4685-41af-a2a9-ed7f68454d6f
-			defaultHierarchy: LocalDateTable_c38cb82b-859d-457e-b171-452b73fd75e0.'Hiérarchie de dates'
-
 		annotation SummarizationSetBy = Automatic
 
 		annotation UnderlyingDateTimeDataType = Date

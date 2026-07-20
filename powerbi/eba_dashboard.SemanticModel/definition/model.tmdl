@@ -6,20 +6,17 @@ model Model
 		legacyRedirects
 		returnErrorValuesAsNull
 
-annotation __PBI_TimeIntelligenceEnabled = 1
+annotation __PBI_TimeIntelligenceEnabled = 0
 
 annotation PBI_QueryOrder = ["dim_date","dim_country","dim_indicator","dim_bank","fact_ratios"]
 
 annotation PBI_ProTooling = ["DaxQueryView_Desktop","DevMode"]
 
 ref table dim_date
-ref table DateTableTemplate_ebea3da0-c3f6-418a-ae57-bf53d19adb95
-ref table LocalDateTable_0fe96771-8839-4e45-8c82-b9ccb9f6bb6f
 ref table dim_country
 ref table dim_indicator
 ref table dim_bank
 ref table fact_ratios
-ref table LocalDateTable_c38cb82b-859d-457e-b171-452b73fd75e0
 ref table _Measures
 
 ref cultureInfo fr-FR

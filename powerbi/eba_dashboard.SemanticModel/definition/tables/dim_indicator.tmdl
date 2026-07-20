@@ -43,10 +43,13 @@ table dim_indicator
 		annotation SummarizationSetBy = Automatic
 
 	column REGULATORY_MIN
-		dataType: string
+		dataType: double
+		formatString: 0.0%
 		lineageTag: 28b079b3-93f2-4048-88bb-fffc414f34b4
 		summarizeBy: none
 		sourceColumn: REGULATORY_MIN
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 		annotation SummarizationSetBy = Automatic
 
@@ -73,7 +76,8 @@ table dim_indicator
 				let
 				    Source = Csv.Document(File.Contents("C:\Users\User\dev\BankingStudyDashboardPowerBI\data\processed\dim_indicator.csv"),[Delimiter=",", Columns=8, Encoding=1252, QuoteStyle=QuoteStyle.None]),
 				    #"En-têtes promus" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
-				    #"Type modifié" = Table.TransformColumnTypes(#"En-têtes promus",{{"INDICATOR_ID", Int64.Type}, {"INDICATOR_CODE", type text}, {"INDICATOR_NAME", type text}, {"CATEGORY", type text}, {"UNIT", type text}, {"REGULATORY_MIN", type text}, {"HIGHER_IS_BETTER", type logical}, {"CRR2_REFERENCE", type text}})
+				    #"Valeur remplacée" = Table.ReplaceValue(#"En-têtes promus",".",",",Replacer.ReplaceText,{"REGULATORY_MIN"}),
+				    #"Type modifié" = Table.TransformColumnTypes(#"Valeur remplacée",{{"INDICATOR_ID", Int64.Type}, {"INDICATOR_CODE", type text}, {"INDICATOR_NAME", type text}, {"CATEGORY", type text}, {"UNIT", type text}, {"REGULATORY_MIN", type number}, {"HIGHER_IS_BETTER", type logical}, {"CRR2_REFERENCE", type text}})
 				in
 				    #"Type modifié"
 
