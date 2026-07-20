@@ -1,0 +1,76 @@
+page: Executive Overview
+page_id: pgexecoverview000001
+canvas: {width: 1280, height: 800}
+grid: {cols: 12, row_px: 60, margin: 16, gutter: 8}
+visuals:
+  - type: textbox
+    text: "European Banking Regulatory Dashboard"
+    pos: [0, 0, 9, 1]
+  - type: slicer
+    slots: {value: {table: dim_date, name: YEAR}}
+    pos: [9, 0, 3, 2]
+  - type: caption
+    text: "EU banks enter 2025 comfortably capitalised: CET1 at 18.1%, four times the 4.5% floor, with liquidity and asset quality both inside regulatory comfort zones."
+    pos: [0, 1, 9, 1]
+
+  - type: heroCard
+    slots: {measure: {table: _Measures, name: EU CET1}}
+    pos: [0, 2, 3, 4]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU CET1 YoY bps}}
+    pos: [3, 2, 3, 2]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU LCR}}
+    pos: [6, 2, 3, 2]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU NPL}}
+    pos: [9, 2, 3, 2]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU ROE}}
+    pos: [3, 4, 3, 2]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU Leverage}}
+    pos: [6, 4, 3, 2]
+  - type: card
+    slots: {measure: {table: _Measures, name: EU CTI}}
+    pos: [9, 4, 3, 2]
+
+  - type: lineChart
+    title: "EU CET1 climbed from 14.5% to 18.1% over seven years"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure:
+        - {table: _Measures, name: Avg Ratio}
+        - {table: _Measures, name: Rolling 4Q Avg}
+    filters:
+      - field: {table: dim_indicator, name: INDICATOR_CODE}
+        type: In
+        values: [CET1_FL]
+      - field: {table: dim_bank, name: BANK_CODE}
+        type: In
+        values: [AGG_EU]
+    format: {legend: true, legendPosition: Top, yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 6, 8, 4]
+  - type: barChart
+    title: "Ten thinnest country capital positions all clear 15%"
+    slots:
+      axis: {table: dim_country, name: COUNTRY_NAME}
+      measure: {table: _Measures, name: CET1 Latest}
+    filters:
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+      - field: {table: dim_country, name: COUNTRY_NAME}
+        type: TopN
+        count: 10
+        order_by: {table: _Measures, name: CET1 Latest}
+        direction: asc
+    format: {dataLabels: true, xAxisTitle: false, yAxisTitle: false}
+    pos: [8, 6, 4, 4]
+
+  - type: caption
+    text: "Country aggregates from the ECB KRI dataflow, Q1 2018 to Q4 2024. Bank-level detail from the EBA 2024 Transparency Exercise on pages 3 and 5."
+    pos: [0, 10, 12, 1]
