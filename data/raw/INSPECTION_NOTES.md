@@ -35,7 +35,7 @@ https://data-api.ecb.europa.eu/service/data/KRI?format=csvdata&startPeriod=2018-
 The 02 cleaner auto-detects the indicator and value columns (`_detect_*`
 helpers in `02_clean_risk_indicators.py`). Indicator labels are mapped to
 canonical codes (`CET1_FL`, `LCR`, etc.) via case-insensitive substring
-matching — see `INDICATOR_PATTERNS`.
+matching (see `INDICATOR_PATTERNS`).
 
 **Re-inspection checklist when refreshing the file**
 
@@ -116,7 +116,7 @@ in `03_clean_transparency.py`.
 3. Sample 20 rows: `python -c "import pandas as pd; print(pd.read_csv('data/raw/tr_oth.csv', nrows=20).to_string())"`.
 4. Open `TR_Metadata.xlsx` and confirm there is a sheet with `Item` and
    `Label` columns. Cross-check that all canonical indicators in
-   `INDICATOR_LABELS` find at least one Item match — the cleaner logs
+   `INDICATOR_LABELS` find at least one Item match, the cleaner logs
    `resolved N Item -> INDICATOR_CODE entries`.
 
 ---
@@ -132,7 +132,7 @@ The synthetic dataset matches the documented schemas above so that the
 cleaners exercise the same code paths. A `SYNTHETIC.flag` file is placed
 beside the raw files for unambiguous tagging. Real data refresh: drop the
 official files into `data/raw/` and re-run `python python/01_download_data.py`
-followed by 02, 03, 04 — `download_file()` is idempotent and will leave any
+followed by 02, 03, 04, `download_file()` is idempotent and will leave any
 real file already present in place.
 
 ---
