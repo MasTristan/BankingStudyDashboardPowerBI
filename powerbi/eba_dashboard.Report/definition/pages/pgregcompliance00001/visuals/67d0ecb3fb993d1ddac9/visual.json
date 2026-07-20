@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "67d0ecb3fb993d1ddac9",
+  "position": {
+    "x": 16.0,
+    "y": 84,
+    "z": 2,
+    "width": 934.0,
+    "height": 60
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Distance to the CRR2 floors: CET1 4.5%, Tier 1 6%, total capital 8%, leverage 3%, LCR and NSFR 100%. Red would flag a breach; none appears at any grain.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "11pt",
+                      "color": "#8B949E"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

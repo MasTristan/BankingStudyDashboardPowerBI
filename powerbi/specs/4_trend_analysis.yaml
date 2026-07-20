@@ -1,0 +1,65 @@
+page: Trend Analysis
+page_id: pgtrendanalysis00001
+canvas: {width: 1280, height: 848}
+grid: {cols: 12, row_px: 60, margin: 16, gutter: 8}
+page_filters:
+  - field: {table: dim_bank, name: BANK_CODE}
+    type: In
+    values: [AGG_EU]
+visuals:
+  - type: textbox
+    text: "Trend Analysis - seven years of EU aggregates"
+    pos: [0, 0, 12, 1]
+  - type: caption
+    text: "28 quarters of ECB Key Risk Indicators for the EU aggregate, smoothed as 4-quarter moving averages: capital kept building through COVID and the 2022 rate cycle, liquidity never left its comfort zone, and profitability recovered."
+    pos: [0, 1, 12, 1]
+
+  - type: lineChart
+    title: "CET1 closes the gap on the wider capital stack"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure:
+        - {table: _Measures, name: CET1 Rolling 4Q}
+        - {table: _Measures, name: Tier1 Rolling 4Q}
+        - {table: _Measures, name: Total Capital Rolling 4Q}
+    format: {legend: true, legendPosition: Top, yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 2, 8, 5]
+
+  - type: comboChart
+    title: "ROE holds near 8-9%; cost-to-income swings around 60%"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      columns: {table: _Measures, name: ROE Rolling 4Q}
+      line: {table: _Measures, name: CTI Rolling 4Q}
+    format: {legend: true, legendPosition: Top, xAxisTitle: false}
+    pos: [8, 2, 4, 5]
+
+  - type: lineChart
+    title: "NPL peaked in 2022, now near 2%"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure: {table: _Measures, name: NPL Rolling 4Q}
+    format: {yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 7, 4, 4]
+
+  - type: lineChart
+    title: "Liquidity holds 30-50% above requirement"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure:
+        - {table: _Measures, name: LCR Rolling 4Q}
+        - {table: _Measures, name: NSFR Rolling 4Q}
+    format: {legend: true, legendPosition: Top, yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [4, 7, 4, 4]
+
+  - type: lineChart
+    title: "Leverage ratio stays near double the 3% floor"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure: {table: _Measures, name: Leverage Rolling 4Q}
+    format: {yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [8, 7, 4, 4]
+
+  - type: caption
+    text: "EU aggregate, ECB KRI dataflow, Q1 2018 to Q4 2024, 4-quarter moving averages. LCR and NSFR floors are 100%; leverage floor is 3% (CRR2 Art. 429)."
+    pos: [0, 11, 12, 1]

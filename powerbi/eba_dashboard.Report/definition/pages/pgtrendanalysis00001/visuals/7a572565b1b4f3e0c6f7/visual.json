@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "7a572565b1b4f3e0c6f7",
+  "position": {
+    "x": 16.0,
+    "y": 764,
+    "z": 7,
+    "width": 1248.0,
+    "height": 60
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "EU aggregate, ECB KRI dataflow, Q1 2018 to Q4 2024, 4-quarter moving averages. LCR and NSFR floors are 100%; leverage floor is 3% (CRR2 Art. 429).",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "11pt",
+                      "color": "#8B949E"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

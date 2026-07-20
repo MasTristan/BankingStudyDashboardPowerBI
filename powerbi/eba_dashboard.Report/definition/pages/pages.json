@@ -3,7 +3,9 @@
   "pageOrder": [
     "pgexecoverview000001",
     "pgcountrycompare0001",
-    "pgbankrankings000001"
+    "pgbankrankings000001",
+    "pgtrendanalysis00001",
+    "pgregcompliance00001"
   ],
-  "activePageName": "pgbankrankings000001"
+  "activePageName": "pgregcompliance00001"
 }

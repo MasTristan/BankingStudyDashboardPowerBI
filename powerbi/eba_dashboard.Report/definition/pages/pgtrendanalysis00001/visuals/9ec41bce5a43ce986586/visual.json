@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "9ec41bce5a43ce986586",
+  "position": {
+    "x": 16.0,
+    "y": 84,
+    "z": 1,
+    "width": 1248.0,
+    "height": 60
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "28 quarters of ECB Key Risk Indicators for the EU aggregate, smoothed as 4-quarter moving averages: capital kept building through COVID and the 2022 rate cycle, liquidity never left its comfort zone, and profitability recovered.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "11pt",
+                      "color": "#8B949E"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

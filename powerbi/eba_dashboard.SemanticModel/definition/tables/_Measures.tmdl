@@ -84,10 +84,11 @@ table _Measures
 	measure 'Avg Regulatory Buffer' =
 
 			VAR MinThreshold = MAX(DIM_INDICATOR[REGULATORY_MIN])
+			VAR BaseValue = [Latest NB Value]
 			RETURN
 			    IF(
-			        NOT ISBLANK(MinThreshold),
-			        [Latest NB Value] - MinThreshold,
+			        NOT ISBLANK(MinThreshold) && NOT ISBLANK(BaseValue),
+			        BaseValue - MinThreshold,
 			        BLANK()
 			    )
 		formatString: +0.0%;-0.0%;0.0%
@@ -243,6 +244,60 @@ table _Measures
 			CALCULATE([CTI Latest], dim_bank[BANK_CODE] = "AGG_EU")
 		formatString: 0.0%
 		lineageTag: 934e2625-6151-4a2f-a4c2-33aa82c1b9d4
+
+	measure 'CET1 Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "CET1_FL")
+		formatString: 0.0%
+		lineageTag: 2069f351-c44f-4dfc-b6b6-ed941cc6481d
+
+	measure 'Tier1 Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "TIER1_FL")
+		formatString: 0.0%
+		lineageTag: 61f64258-8092-422f-a1ea-77e72d4482cd
+
+	measure 'Total Capital Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "TOTAL_CAP_FL")
+		formatString: 0.0%
+		lineageTag: 78e85cfa-e2fc-4dcc-85a7-f816798038da
+
+	measure 'NPL Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "NPL_RATIO")
+		formatString: 0.00%
+		lineageTag: e7709717-d463-4056-85ed-347bca2848a5
+
+	measure 'LCR Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "LCR")
+		formatString: #,##0%
+		lineageTag: 970ab80b-4b6b-4dcd-82b4-3a102433352b
+
+	measure 'NSFR Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "NSFR")
+		formatString: #,##0%
+		lineageTag: 0b72cc60-8493-47df-8f42-dd752b2ec998
+
+	measure 'Leverage Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "LEV_RATIO")
+		formatString: 0.00%
+		lineageTag: 9af79994-6618-4418-b1e6-8db734a0933c
+
+	measure 'ROE Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "ROE")
+		formatString: 0.0%
+		lineageTag: f7e5d5fb-1d74-4fd0-abb5-7e75c3ddcf4c
+
+	measure 'CTI Rolling 4Q' =
+
+			CALCULATE([Rolling 4Q Avg], dim_indicator[INDICATOR_CODE] = "CTI")
+		formatString: 0.0%
+		lineageTag: 7f43300d-8e08-45dc-851f-51a3ca23874f
 
 	measure 'Total Assets BEUR' =
 
