@@ -1,0 +1,57 @@
+page: Bank Rankings
+page_id: pgbankrankings000001
+canvas: {width: 1280, height: 800}
+grid: {cols: 12, row_px: 60, margin: 16, gutter: 8}
+page_filters:
+  - field: {table: fact_ratios, name: SOURCE}
+    type: In
+    values: [TRANSPARENCY]
+visuals:
+  - type: textbox
+    text: "Bank Rankings - EBA 2024 Transparency Exercise"
+    pos: [0, 0, 9, 1]
+  - type: slicer
+    slots: {value: {table: dim_country, name: COUNTRY_NAME}}
+    pos: [9, 0, 3, 2]
+  - type: caption
+    text: "Bank-by-bank disclosures for 61 institutions, September 2023 to June 2024. Every bank in the sample clears the 4.5% CET1 floor with room to spare."
+    pos: [0, 1, 9, 1]
+
+  - type: barChart
+    title: "Top 20 banks by CET1 ratio, latest disclosure"
+    slots:
+      axis: {table: dim_bank, name: BANK_NAME}
+      measure: {table: _Measures, name: CET1 Latest}
+    filters:
+      - field: {table: dim_bank, name: BANK_NAME}
+        type: TopN
+        count: 20
+        order_by: {table: _Measures, name: CET1 Latest}
+        direction: desc
+    format: {dataLabels: true, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 2, 7, 8]
+
+  - type: scatterChart
+    title: "Capital and liquidity positions are independent"
+    slots:
+      x: {table: _Measures, name: CET1 Latest}
+      y: {table: _Measures, name: LCR Latest}
+      details: {table: dim_bank, name: BANK_NAME}
+      size: {table: _Measures, name: Total Assets BEUR}
+    format: {legend: false}
+    pos: [7, 2, 5, 4]
+
+  - type: matrix
+    title: "Bank reference: latest disclosed ratios"
+    slots:
+      rows: {table: dim_bank, name: BANK_NAME}
+      values:
+        - {table: _Measures, name: CET1 Latest}
+        - {table: _Measures, name: NPL Latest}
+        - {table: _Measures, name: ROE Latest}
+    format: {rowSubtotals: false}
+    pos: [7, 6, 5, 4]
+
+  - type: caption
+    text: "Source: EBA 2024 Transparency Exercise, 61 banks with full ratio coverage. Bubble size is total assets in BEUR. Use the country slicer to focus on one market."
+    pos: [0, 10, 12, 1]
