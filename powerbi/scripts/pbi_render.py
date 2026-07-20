@@ -45,6 +45,17 @@ LOAD_TIMEOUT = 180  # seconds
 DEFAULT_SETTLE = 40  # seconds to let DirectQuery visuals render after page switch
 
 
+def harden_pbip(pbip: Path):
+    """Desktop strips enableAutoRecovery=false from the .pbip every time it
+    opens the project, and auto recovery restores stale PBIR files after this
+    script's force-kill. Re-apply the setting before every launch."""
+    data = json.loads(pbip.read_text(encoding="utf-8"))
+    if data.setdefault("settings", {}).get("enableAutoRecovery") is not False:
+        data["settings"]["enableAutoRecovery"] = False
+        pbip.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        print("  hardened .pbip: enableAutoRecovery = false")
+
+
 def kill_desktop():
     for p in psutil.process_iter(["name"]):
         if p.info["name"] and p.info["name"].lower().startswith("pbidesktop"):
@@ -256,6 +267,7 @@ def main():
         old.unlink()
 
     kill_desktop()
+    harden_pbip(pbip)
     subprocess.Popen([PBI_EXE, str(pbip)])
     print("Launching Desktop, waiting for the window...")
     win = find_desktop_window(timeout=90)
