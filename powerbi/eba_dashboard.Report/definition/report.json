@@ -52,11 +52,6 @@
       "type": "RegisteredResources",
       "items": [
         {
-          "name": "EBA_Banking_Theme1004701918990365.json",
-          "path": "EBA_Banking_Theme1004701918990365.json",
-          "type": "CustomTheme"
-        },
-        {
           "name": "report.theme.json",
           "path": "report.theme.json",
           "type": "CustomTheme"
@@ -70,7 +65,7 @@
     "defaultDrillFilterOtherVisuals": true,
     "allowChangeFilterTypes": true,
     "useEnhancedTooltips": true,
-    "useDefaultAggregateDisplayName": true,
-    "filterPaneHiddenInEditMode": true
+    "filterPaneHiddenInEditMode": true,
+    "useDefaultAggregateDisplayName": true
   }
 }

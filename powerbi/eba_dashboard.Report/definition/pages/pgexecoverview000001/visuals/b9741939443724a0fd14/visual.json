@@ -2,11 +2,11 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "b9741939443724a0fd14",
   "position": {
-    "x": 16.0,
+    "x": 16,
     "y": 152,
     "z": 3,
-    "width": 306.0,
-    "height": 264
+    "height": 264,
+    "width": 306
   },
   "visual": {
     "visualType": "cardVisual",
@@ -136,68 +136,6 @@
           },
           "selector": {
             "id": "default"
-          }
-        }
-      ],
-      "labels": [
-        {
-          "properties": {
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "46D"
-                }
-              }
-            },
-            "fontFamily": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Segoe UI Semibold'"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#22D3EE'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
-      "categoryLabel": [
-        {
-          "properties": {
-            "fontSize": {
-              "expr": {
-                "Literal": {
-                  "Value": "12D"
-                }
-              }
-            },
-            "fontFamily": {
-              "expr": {
-                "Literal": {
-                  "Value": "'Segoe UI'"
-                }
-              }
-            },
-            "color": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#8B949E'"
-                    }
-                  }
-                }
-              }
-            }
           }
         }
       ]

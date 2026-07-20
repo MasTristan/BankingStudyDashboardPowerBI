@@ -2,52 +2,16 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
   "name": "972ef34a8eb111b68d73",
   "position": {
-    "x": 16.0,
+    "x": 16,
     "y": 152,
     "z": 3,
-    "width": 724.67,
-    "height": 332
+    "height": 332,
+    "width": 724.67
   },
   "visual": {
     "visualType": "scatterChart",
     "query": {
       "queryState": {
-        "X": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "_Measures"
-                    }
-                  },
-                  "Property": "CET1 Latest"
-                }
-              },
-              "queryRef": "_Measures.CET1 Latest",
-              "nativeQueryRef": "CET1 Latest"
-            }
-          ]
-        },
-        "Y": {
-          "projections": [
-            {
-              "field": {
-                "Measure": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "_Measures"
-                    }
-                  },
-                  "Property": "NPL Latest"
-                }
-              },
-              "queryRef": "_Measures.NPL Latest",
-              "nativeQueryRef": "NPL Latest"
-            }
-          ]
-        },
         "Category": {
           "projections": [
             {
@@ -82,6 +46,43 @@
               },
               "queryRef": "dim_country.REGION",
               "nativeQueryRef": "REGION"
+            }
+          ]
+        },
+        "X": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "CET1 Latest"
+                }
+              },
+              "queryRef": "_Measures.CET1 Latest",
+              "nativeQueryRef": "CET1 Latest",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Measures"
+                    }
+                  },
+                  "Property": "NPL Latest"
+                }
+              },
+              "queryRef": "_Measures.NPL Latest",
+              "nativeQueryRef": "NPL Latest"
             }
           ]
         }
