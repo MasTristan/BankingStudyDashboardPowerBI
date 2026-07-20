@@ -196,7 +196,20 @@ DIM_BANK[COUNTRY_CODE]    -> DIM_COUNTRY[COUNTRY_CODE]    (many-to-one)
 | 4 | Trend Analysis | 4-quarter rolling views: capital stack, ROE vs CTI combo, NPL, liquidity, leverage |
 | 5 | Regulatory Compliance | Buffer-to-floor bars with rule-based colour, country x requirement matrix |
 
+### 1. Executive Overview
 ![Executive Overview](powerbi/screenshots/Executive%20Overview.png)
+
+### 2. Country Comparison
+![Country Comparison](powerbi/screenshots/Country%20Comparison.png)
+
+### 3. Bank Rankings
+![Bank Rankings](powerbi/screenshots/Bank%20Rankings.png)
+
+### 4. Trend Analysis
+![Trend Analysis](powerbi/screenshots/Trend%20Analysis.png)
+
+### 5. Regulatory Compliance
+![Regulatory Compliance](powerbi/screenshots/Regulatory%20Compliance.png)
 
 ---
 
