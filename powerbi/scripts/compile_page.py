@@ -212,6 +212,22 @@ def bind_projection(visual, slot_path, kind, binding, proj_index):
         proj["nativeQueryRef"] = binding["name"]
 
 
+def prune_placeholder_projections(visual):
+    """Drop queryState roles the spec left unbound: templates ship a
+    PLACEHOLDER projection per optional role (e.g. matrix Columns) and an
+    unbound one must not survive into the compiled visual."""
+    query_state = visual.get("visual", {}).get("query", {}).get("queryState")
+    if not isinstance(query_state, dict):
+        return
+    for role in list(query_state):
+        projections = query_state[role].get("projections")
+        if not isinstance(projections, list):
+            continue
+        projections[:] = [p for p in projections if "PLACEHOLDER" not in json.dumps(p)]
+        if not projections:
+            del query_state[role]
+
+
 def build_filter(fspec, name_seed):
     """Build one PBIR filterConfig entry from a spec filter."""
     table, col = fspec["field"]["table"], fspec["field"]["name"]
@@ -417,6 +433,8 @@ def compile_visual(v, i, page_id, grid, canvas):
         for slot in slot_defs:
             for k, b in enumerate(bindings):
                 bind_projection(visual, slot["path"], slot["kind"], b, k)
+
+    prune_placeholder_projections(visual)
 
     if "title" in vmap:
         if "title" in v:

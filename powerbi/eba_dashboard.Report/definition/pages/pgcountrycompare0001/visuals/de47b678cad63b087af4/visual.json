@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.8.0/schema.json",
+  "name": "de47b678cad63b087af4",
+  "position": {
+    "x": 16.0,
+    "y": 764,
+    "z": 7,
+    "width": 1248.0,
+    "height": 60
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Country aggregates, ECB KRI dataflow. Latest quarter per country; use the YEAR slicer to rewind. NPL ratios span 0.6% to 6.2% across the 26 markets covered.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "11pt",
+                      "color": "#8B949E"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

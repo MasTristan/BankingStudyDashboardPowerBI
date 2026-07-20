@@ -1,0 +1,93 @@
+page: Country Comparison
+page_id: pgcountrycompare0001
+canvas: {width: 1280, height: 848}
+grid: {cols: 12, row_px: 60, margin: 16, gutter: 8}
+visuals:
+  - type: textbox
+    text: "Country Comparison - capital strength vs asset quality"
+    pos: [0, 0, 9, 1]
+  - type: slicer
+    slots: {value: {table: dim_date, name: YEAR}}
+    pos: [9, 0, 3, 2]
+  - type: caption
+    text: "Every EU banking market clears its capital minima, but asset quality still splits the map: the heaviest NPL books carry six times the load of the cleanest ones."
+    pos: [0, 1, 9, 1]
+
+  - type: scatterChart
+    title: "No country pairs thin capital with a heavy NPL book"
+    slots:
+      x: {table: _Measures, name: CET1 Latest}
+      y: {table: _Measures, name: NPL Latest}
+      details: {table: dim_country, name: COUNTRY_NAME}
+      legend: {table: dim_country, name: REGION}
+    filters:
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+    format: {legend: true, legendPosition: Top}
+    pos: [0, 2, 7, 5]
+
+  - type: barChart
+    title: "Ireland and the Netherlands top the NPL table at ~6%"
+    slots:
+      axis: {table: dim_country, name: COUNTRY_NAME}
+      measure: {table: _Measures, name: NPL Latest}
+    filters:
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+      - field: {table: dim_country, name: COUNTRY_NAME}
+        type: TopN
+        count: 10
+        order_by: {table: _Measures, name: NPL Latest}
+        direction: desc
+    format: {dataLabels: true, xAxisTitle: false, yAxisTitle: false}
+    pos: [7, 2, 5, 5]
+
+  - type: lineChart
+    title: "All four regions hold NPL inside a 2-3% band since 2018"
+    slots:
+      axis: {table: dim_date, name: REFERENCE_DATE}
+      measure: {table: _Measures, name: Avg Ratio}
+      small_multiples: {table: dim_country, name: REGION}
+    filters:
+      - field: {table: dim_indicator, name: INDICATOR_CODE}
+        type: In
+        values: [NPL_RATIO]
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: REGION}
+        type: NotIn
+        values: [EU_AGG]
+    format: {yAxisStart: 0, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 7, 7, 4]
+
+  - type: matrix
+    title: "Country reference: latest headline ratios"
+    slots:
+      rows: {table: dim_country, name: COUNTRY_NAME}
+      values:
+        - {table: _Measures, name: CET1 Latest}
+        - {table: _Measures, name: NPL Latest}
+        - {table: _Measures, name: LCR Latest}
+        - {table: _Measures, name: ROE Latest}
+    filters:
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+    format: {rowSubtotals: false}
+    pos: [7, 7, 5, 4]
+
+  - type: caption
+    text: "Country aggregates, ECB KRI dataflow. Latest quarter per country; use the YEAR slicer to rewind. NPL ratios span 0.6% to 6.2% across the 26 markets covered."
+    pos: [0, 11, 12, 1]

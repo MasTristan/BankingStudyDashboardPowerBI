@@ -1,7 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
   "pageOrder": [
-    "pgexecoverview000001"
+    "pgexecoverview000001",
+    "pgcountrycompare0001"
   ],
-  "activePageName": "pgexecoverview000001"
+  "activePageName": "pgcountrycompare0001"
 }
