@@ -1,0 +1,268 @@
+table _Measures
+	lineageTag: 18383eb4-62d5-448e-a63b-8cf4f7f17e53
+
+	measure 'Avg Ratio' =
+
+			AVERAGEX(FACT_RATIOS, FACT_RATIOS[VALUE])
+		formatString: 0.0%
+		lineageTag: 103c9cbb-5e62-4780-937e-d245ada29d14
+
+	measure 'Latest Value' =
+
+			CALCULATE(
+			    AVERAGE(FACT_RATIOS[VALUE]),
+			    LASTDATE(DIM_DATE[REFERENCE_DATE])
+			)
+		formatString: 0.0%
+		lineageTag: 90866e7e-5bd7-4bbf-9fed-b9e832a2d9ba
+
+	measure 'Latest NB Value' =
+
+			// Last quarter that actually has data in the current filter context.
+			// Robust to sources with different coverage (TRANSPARENCY stops at 2024-Q2).
+			VAR LastDataDate = CALCULATE(MAX(fact_ratios[REFERENCE_DATE]))
+			RETURN
+			    CALCULATE(
+			        AVERAGE(fact_ratios[VALUE]),
+			        fact_ratios[REFERENCE_DATE] = LastDataDate
+			    )
+		formatString: 0.0%
+		lineageTag: 2d97c0f5-bd5c-4623-9197-43523879b2ed
+
+	measure 'Nb Banks' =
+
+			DISTINCTCOUNT(FACT_RATIOS[BANK_ID])
+		formatString: 0
+		lineageTag: 41fca5ce-60db-4273-87e8-2b232ee81523
+
+	measure 'Nb Countries' =
+
+			DISTINCTCOUNT(FACT_RATIOS[COUNTRY_CODE])
+		formatString: 0
+		lineageTag: b6e562ea-e2b1-4141-95fe-92b842f4838c
+
+	measure 'YoY Change' =
+
+			VAR CurrentValue = [Latest Value]
+			VAR PriorYearValue =
+			    CALCULATE(
+			        AVERAGE(FACT_RATIOS[VALUE]),
+			        DATEADD(DIM_DATE[REFERENCE_DATE], -1, YEAR)
+			    )
+			RETURN
+			    DIVIDE(CurrentValue - PriorYearValue, PriorYearValue, BLANK())
+		formatString: +0.0%;-0.0%;0.0%
+		lineageTag: 9d575e65-3704-4862-b1b1-3995ded92849
+
+	measure 'YoY Change bps' =
+
+			VAR CurrentValue = [Latest Value]
+			VAR PriorYearValue =
+			    CALCULATE(
+			        AVERAGE(FACT_RATIOS[VALUE]),
+			        DATEADD(DIM_DATE[REFERENCE_DATE], -1, YEAR)
+			    )
+			RETURN
+			    (CurrentValue - PriorYearValue) * 10000
+		formatString: +#,##0;-#,##0;0
+		lineageTag: 3fe7b73a-c5dc-4816-8cb7-73be68985ea2
+
+	measure 'Rolling 4Q Avg' =
+
+			AVERAGEX(
+			    DATESINPERIOD(
+			        DIM_DATE[REFERENCE_DATE],
+			        LASTDATE(DIM_DATE[REFERENCE_DATE]),
+			        -4,
+			        QUARTER
+			    ),
+			    [Avg Ratio]
+			)
+		formatString: 0.0%
+		lineageTag: eff8ad39-f140-442f-8da8-a34f52a5cdd2
+
+	measure 'Avg Regulatory Buffer' =
+
+			VAR MinThreshold = MAX(DIM_INDICATOR[REGULATORY_MIN])
+			RETURN
+			    IF(
+			        NOT ISBLANK(MinThreshold),
+			        [Latest NB Value] - MinThreshold,
+			        BLANK()
+			    )
+		formatString: +0.0%;-0.0%;0.0%
+		lineageTag: 631f67bc-0227-4d46-b3ab-49ec83886f78
+
+	measure 'Pct Banks Below Min' =
+
+			VAR MinThreshold = MAX(DIM_INDICATOR[REGULATORY_MIN])
+			RETURN
+			    IF(
+			        NOT ISBLANK(MinThreshold),
+			        DIVIDE(
+			            CALCULATE(
+			                DISTINCTCOUNT(FACT_RATIOS[BANK_ID]),
+			                FACT_RATIOS[VALUE] < MinThreshold
+			            ),
+			            [Nb Banks],
+			            0
+			        ),
+			        BLANK()
+			    )
+		formatString: 0.0%
+		lineageTag: 3ed50291-f4c5-447e-8946-ab195d09c188
+
+	measure 'Compliance Status' =
+
+			VAR MinThreshold = MAX(DIM_INDICATOR[REGULATORY_MIN])
+			VAR AvgVal = [Latest NB Value]
+			RETURN
+			    SWITCH(
+			        TRUE(),
+			        ISBLANK(MinThreshold), "N/A",
+			        AvgVal >= MinThreshold * 1.2, "STRONG",
+			        AvgVal >= MinThreshold, "COMPLIANT",
+			        "BELOW MINIMUM"
+			    )
+		lineageTag: f72a71a9-e041-4b55-99dc-1aa498c12b4b
+
+	measure 'Bank Rank Latest' =
+
+			RANKX(
+			    ALLSELECTED(DIM_BANK[BANK_NAME]),
+			    [Latest NB Value],
+			    ,
+			    DESC,
+			    Dense
+			)
+		formatString: 0
+		lineageTag: 021b5542-b3aa-4989-9395-720b9b9cc79e
+
+	measure 'CET1 Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "CET1_FL")
+		formatString: 0.0%
+		lineageTag: efa6a4a4-f528-4a60-a996-88cdf2b11fe3
+
+	measure 'Tier1 Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "TIER1_FL")
+		formatString: 0.0%
+		lineageTag: 8b2fa4db-c2ef-4680-ac66-23e2b469b37a
+
+	measure 'Total Capital Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "TOTAL_CAP_FL")
+		formatString: 0.0%
+		lineageTag: bc41c281-6139-418b-a7b7-f3d8ab80daa0
+
+	measure 'Leverage Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "LEV_RATIO")
+		formatString: 0.00%
+		lineageTag: 6db108db-7378-4256-a526-9fab551d247f
+
+	measure 'LCR Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "LCR")
+		formatString: #,##0%
+		lineageTag: a4d3d2ba-0a2c-4c08-a80a-fe1559c394b8
+
+	measure 'NSFR Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "NSFR")
+		formatString: #,##0%
+		lineageTag: 4911503e-26b5-467e-aac8-96dcab7c5b33
+
+	measure 'NPL Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "NPL_RATIO")
+		formatString: 0.00%
+		lineageTag: 549d26bd-eb21-417a-b089-1ac0847ba64a
+
+	measure 'NPL Coverage Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "NPL_COVERAGE")
+		formatString: 0.0%
+		lineageTag: 7ab45cca-0745-4d47-973d-e03abbd4fc6c
+
+	measure 'ROE Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "ROE")
+		formatString: 0.0%
+		lineageTag: bed5e8f2-555d-47bf-8080-debf55402a9c
+
+	measure 'CTI Latest' =
+
+			CALCULATE([Latest NB Value], dim_indicator[INDICATOR_CODE] = "CTI")
+		formatString: 0.0%
+		lineageTag: 8083a4ae-2e24-4b38-ba07-d845450ffa7c
+
+	measure 'EU CET1' =
+
+			CALCULATE([CET1 Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: 0.0%
+		lineageTag: c4cceb01-95c0-4449-aa87-7456f2dbacbd
+
+	measure 'EU CET1 YoY bps' =
+
+			CALCULATE(
+			    [YoY Change bps],
+			    dim_bank[BANK_CODE] = "AGG_EU",
+			    dim_indicator[INDICATOR_CODE] = "CET1_FL"
+			)
+		formatString: +#,##0;-#,##0;0
+		lineageTag: 977af9c3-00c0-426c-adda-928fd3c61979
+
+	measure 'EU LCR' =
+
+			CALCULATE([LCR Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: #,##0%
+		lineageTag: 24c3c56d-23c1-4e3e-ae2d-80998619049f
+
+	measure 'EU NPL' =
+
+			CALCULATE([NPL Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: 0.00%
+		lineageTag: a5cf8ef6-fcb6-4ab3-bad8-d17f496777a3
+
+	measure 'EU ROE' =
+
+			CALCULATE([ROE Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: 0.0%
+		lineageTag: 9f4527a9-5e76-4860-a481-30063c7f4554
+
+	measure 'EU Leverage' =
+
+			CALCULATE([Leverage Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: 0.00%
+		lineageTag: 1a463de7-d0b0-4b08-9d2c-e9637eb9d528
+
+	measure 'EU CTI' =
+
+			CALCULATE([CTI Latest], dim_bank[BANK_CODE] = "AGG_EU")
+		formatString: 0.0%
+		lineageTag: 934e2625-6151-4a2f-a4c2-33aa82c1b9d4
+
+	measure 'Total Assets BEUR' =
+
+			SUM(dim_bank[TOTAL_ASSETS_BEUR])
+		formatString: #,##0
+		lineageTag: 76f8f07f-21e3-4c4c-abf8-3eda78d7820a
+
+	column Column
+		formatString: 0
+		lineageTag: 346e6472-7374-4359-a814-4ec85807bcd9
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Column]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition _Measures = calculated
+		mode: import
+		source = Row("Column", BLANK())
+
+	annotation PBI_Id = 466c34b585624a809c82f8b9419a56dc
+
+	annotation 436ba87b-9c83-4389-a31b-ebd06a36be98 = {"Expression":""}

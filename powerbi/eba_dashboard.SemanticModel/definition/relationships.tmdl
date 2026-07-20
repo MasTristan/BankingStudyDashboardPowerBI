@@ -1,0 +1,31 @@
+relationship df29c44c-8fdf-460b-b7bf-9c8525cfed13
+	joinOnDateBehavior: datePartOnly
+	fromColumn: dim_date.REFERENCE_DATE
+	toColumn: LocalDateTable_0fe96771-8839-4e45-8c82-b9ccb9f6bb6f.Date
+
+relationship AutoDetected_f54568e4-9afd-4ab1-a19b-7d9fd2b5e367
+	fromColumn: dim_bank.COUNTRY_CODE
+	toColumn: dim_country.COUNTRY_CODE
+
+relationship 730ef826-4685-41af-a2a9-ed7f68454d6f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: fact_ratios.REFERENCE_DATE
+	toColumn: LocalDateTable_c38cb82b-859d-457e-b171-452b73fd75e0.Date
+
+relationship AutoDetected_27442633-e252-4ca7-8a92-16fd4c8dc341
+	fromColumn: fact_ratios.DATE_ID
+	toColumn: dim_date.DATE_ID
+
+relationship AutoDetected_f16a57ab-67b5-4714-b4f6-0253517134ba
+	isActive: false
+	fromColumn: fact_ratios.COUNTRY_CODE
+	toColumn: dim_country.COUNTRY_CODE
+
+relationship AutoDetected_937cffe6-8def-4809-886e-cab5d2dd662a
+	fromColumn: fact_ratios.INDICATOR_ID
+	toColumn: dim_indicator.INDICATOR_ID
+
+relationship AutoDetected_9d6b4f44-5738-4366-812f-d769421b93cc
+	fromColumn: fact_ratios.BANK_ID
+	toColumn: dim_bank.BANK_ID
+

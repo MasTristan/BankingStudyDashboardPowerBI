@@ -1,0 +1,57 @@
+table dim_country
+	lineageTag: 8534d581-c071-4cc3-9b9e-5afa2bac8500
+
+	column COUNTRY_CODE
+		dataType: string
+		lineageTag: 7ee5a383-8876-421e-bcc9-ed3167e140fe
+		summarizeBy: none
+		sourceColumn: COUNTRY_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column COUNTRY_NAME
+		dataType: string
+		lineageTag: db1697f0-59c3-4693-a40f-3cd1cd0cb3d8
+		summarizeBy: none
+		sourceColumn: COUNTRY_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column REGION
+		dataType: string
+		lineageTag: 44053330-5210-4d6b-ba61-8bf44692389b
+		summarizeBy: none
+		sourceColumn: REGION
+
+		annotation SummarizationSetBy = Automatic
+
+	column EU_MEMBER
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 79b7e9f7-9ef3-4a61-baa8-777eb672935c
+		summarizeBy: none
+		sourceColumn: EU_MEMBER
+
+		annotation SummarizationSetBy = Automatic
+
+	column EEA_MEMBER
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: f65abce0-8fb1-4e6d-9363-9ee641f29d2d
+		summarizeBy: none
+		sourceColumn: EEA_MEMBER
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_country = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\User\dev\BankingStudyDashboardPowerBI\data\processed\dim_country.csv"),[Delimiter=",", Columns=5, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"En-têtes promus" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Type modifié" = Table.TransformColumnTypes(#"En-têtes promus",{{"COUNTRY_CODE", type text}, {"COUNTRY_NAME", type text}, {"REGION", type text}, {"EU_MEMBER", type logical}, {"EEA_MEMBER", type logical}})
+				in
+				    #"Type modifié"
+
+	annotation PBI_ResultType = Table
+

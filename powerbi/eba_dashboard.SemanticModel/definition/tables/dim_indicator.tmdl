@@ -1,0 +1,81 @@
+table dim_indicator
+	lineageTag: dc8b8d99-1366-4f5d-8fdd-d467821f780d
+
+	column INDICATOR_ID
+		dataType: int64
+		formatString: 0
+		lineageTag: d4d17882-e730-44d6-9df3-31d5200581bd
+		summarizeBy: none
+		sourceColumn: INDICATOR_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column INDICATOR_CODE
+		dataType: string
+		lineageTag: 75fd5a81-21f2-4b61-8415-620e454abc06
+		summarizeBy: none
+		sourceColumn: INDICATOR_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column INDICATOR_NAME
+		dataType: string
+		lineageTag: edc04255-a0be-4ef2-8e04-2ae50ff8cd40
+		summarizeBy: none
+		sourceColumn: INDICATOR_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column CATEGORY
+		dataType: string
+		lineageTag: 7e7177ba-ad18-4e3a-9a3f-107c8663fd89
+		summarizeBy: none
+		sourceColumn: CATEGORY
+
+		annotation SummarizationSetBy = Automatic
+
+	column UNIT
+		dataType: string
+		lineageTag: 40ab0e58-551e-4981-9404-12a3745b14f3
+		summarizeBy: none
+		sourceColumn: UNIT
+
+		annotation SummarizationSetBy = Automatic
+
+	column REGULATORY_MIN
+		dataType: string
+		lineageTag: 28b079b3-93f2-4048-88bb-fffc414f34b4
+		summarizeBy: none
+		sourceColumn: REGULATORY_MIN
+
+		annotation SummarizationSetBy = Automatic
+
+	column HIGHER_IS_BETTER
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: fd93c3c1-e5df-4cab-add2-1f9d1c197eb1
+		summarizeBy: none
+		sourceColumn: HIGHER_IS_BETTER
+
+		annotation SummarizationSetBy = Automatic
+
+	column CRR2_REFERENCE
+		dataType: string
+		lineageTag: 5ac4e9a6-bb04-4ef7-a19d-74e43e186545
+		summarizeBy: none
+		sourceColumn: CRR2_REFERENCE
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_indicator = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\User\dev\BankingStudyDashboardPowerBI\data\processed\dim_indicator.csv"),[Delimiter=",", Columns=8, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"En-têtes promus" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Type modifié" = Table.TransformColumnTypes(#"En-têtes promus",{{"INDICATOR_ID", Int64.Type}, {"INDICATOR_CODE", type text}, {"INDICATOR_NAME", type text}, {"CATEGORY", type text}, {"UNIT", type text}, {"REGULATORY_MIN", type text}, {"HIGHER_IS_BETTER", type logical}, {"CRR2_REFERENCE", type text}})
+				in
+				    #"Type modifié"
+
+	annotation PBI_ResultType = Table
+

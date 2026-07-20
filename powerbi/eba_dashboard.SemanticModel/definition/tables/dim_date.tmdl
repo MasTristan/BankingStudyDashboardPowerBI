@@ -1,0 +1,83 @@
+table dim_date
+	lineageTag: ec1ed212-8184-45a1-a868-5f23f3212626
+
+	column DATE_ID
+		dataType: int64
+		formatString: 0
+		lineageTag: b1fd575f-c4e0-4aa2-b57e-7caa593f0e25
+		summarizeBy: none
+		sourceColumn: DATE_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column REFERENCE_DATE
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 6ca800c9-23b7-41f2-8cc0-a2d8b248d313
+		summarizeBy: none
+		sourceColumn: REFERENCE_DATE
+
+		variation Variation
+			isDefault
+			relationship: df29c44c-8fdf-460b-b7bf-9c8525cfed13
+			defaultHierarchy: LocalDateTable_0fe96771-8839-4e45-8c82-b9ccb9f6bb6f.'Hiérarchie de dates'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column YEAR
+		dataType: int64
+		formatString: 0
+		lineageTag: 005dd9db-9d08-4917-ba32-cb2b379a6401
+		summarizeBy: sum
+		sourceColumn: YEAR
+
+		annotation SummarizationSetBy = Automatic
+
+	column QUARTER
+		dataType: int64
+		formatString: 0
+		lineageTag: 539f97b8-3dcc-4474-84a5-b68d350bc9f1
+		summarizeBy: sum
+		sourceColumn: QUARTER
+
+		annotation SummarizationSetBy = Automatic
+
+	column YEAR_QUARTER
+		dataType: string
+		lineageTag: e09f0603-d920-4db3-9a78-77a7868c65e4
+		summarizeBy: none
+		sourceColumn: YEAR_QUARTER
+
+		annotation SummarizationSetBy = Automatic
+
+	column SEMESTER
+		dataType: int64
+		formatString: 0
+		lineageTag: 1d12cfb7-1c4f-4289-afb9-3cf837689524
+		summarizeBy: sum
+		sourceColumn: SEMESTER
+
+		annotation SummarizationSetBy = Automatic
+
+	column SOURCE_LABEL
+		dataType: string
+		lineageTag: e65a6825-f5e8-483e-815a-f7647555691a
+		summarizeBy: none
+		sourceColumn: SOURCE_LABEL
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\User\dev\BankingStudyDashboardPowerBI\data\processed\dim_date.csv"),[Delimiter=",", Columns=7, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"En-têtes promus" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Type modifié" = Table.TransformColumnTypes(#"En-têtes promus",{{"DATE_ID", Int64.Type}, {"REFERENCE_DATE", type date}, {"YEAR", Int64.Type}, {"QUARTER", Int64.Type}, {"YEAR_QUARTER", type text}, {"SEMESTER", Int64.Type}, {"SOURCE_LABEL", type text}})
+				in
+				    #"Type modifié"
+
+	annotation PBI_ResultType = Table
+

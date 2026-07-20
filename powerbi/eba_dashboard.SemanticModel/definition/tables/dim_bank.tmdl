@@ -1,0 +1,78 @@
+table dim_bank
+	lineageTag: 7b5d8adf-98b9-4647-8302-62a19894219a
+
+	column BANK_ID
+		dataType: int64
+		formatString: 0
+		lineageTag: b49a3cc8-43a3-4f08-9677-ed60d9415886
+		summarizeBy: none
+		sourceColumn: BANK_ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column BANK_CODE
+		dataType: string
+		lineageTag: 4481d472-2a9a-4918-b064-39404912f9a6
+		summarizeBy: none
+		sourceColumn: BANK_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column BANK_NAME
+		dataType: string
+		lineageTag: db04cb54-37a0-490d-bc4e-97cbdc8014c7
+		summarizeBy: none
+		sourceColumn: BANK_NAME
+
+		annotation SummarizationSetBy = Automatic
+
+	column COUNTRY_CODE
+		dataType: string
+		lineageTag: 87b75952-2f09-4b22-94f2-c23fbf1cae71
+		summarizeBy: none
+		sourceColumn: COUNTRY_CODE
+
+		annotation SummarizationSetBy = Automatic
+
+	column BANK_SIZE
+		dataType: string
+		lineageTag: 91d382da-b761-4bbf-80e0-f1026101508d
+		summarizeBy: none
+		sourceColumn: BANK_SIZE
+
+		annotation SummarizationSetBy = Automatic
+
+	column IS_GSIB
+		dataType: int64
+		formatString: 0
+		lineageTag: ab2f717f-49f6-48a7-8d7a-37f848c64013
+		summarizeBy: sum
+		sourceColumn: IS_GSIB
+
+		annotation SummarizationSetBy = Automatic
+
+	column TOTAL_ASSETS_BEUR
+		dataType: double
+		lineageTag: 7d4dafad-4aae-438a-b6ad-a7721692e660
+		summarizeBy: sum
+		sourceColumn: TOTAL_ASSETS_BEUR
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition dim_bank = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\User\dev\BankingStudyDashboardPowerBI\data\processed\dim_bank.csv"),[Delimiter=",", Columns=7, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"En-têtes promus" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Valeur remplacée" = Table.ReplaceValue(#"En-têtes promus",".",",",Replacer.ReplaceText,{"TOTAL_ASSETS_BEUR"}),
+				    #"Type modifié" = Table.TransformColumnTypes(#"Valeur remplacée",{{"BANK_ID", Int64.Type}, {"BANK_CODE", type text}, {"BANK_NAME", type text}, {"COUNTRY_CODE", type text}, {"BANK_SIZE", type text}, {"IS_GSIB", Int64.Type}, {"TOTAL_ASSETS_BEUR", type number}})
+				in
+				    #"Type modifié"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

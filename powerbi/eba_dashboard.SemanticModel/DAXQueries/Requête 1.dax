@@ -1,0 +1,10 @@
+-- Test 3 : sanity check global
+EVALUATE
+ROW(
+    "Nb Banks", [Nb Banks],
+    "Nb Countries", [Nb Countries],
+    "EU Avg CET1", CALCULATE([Latest Value],
+        DIM_INDICATOR[INDICATOR_CODE] = "CET1_FL"),
+    "EU Avg LCR",  CALCULATE([Latest Value],
+        DIM_INDICATOR[INDICATOR_CODE] = "LCR")
+)

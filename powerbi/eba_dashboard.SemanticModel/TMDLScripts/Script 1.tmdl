@@ -1,0 +1,12 @@
+-- Test 1 : CET1 par pays pour la dernière période
+EVALUATE
+CALCULATETABLE(
+    SUMMARIZECOLUMNS(
+        DIM_COUNTRY[COUNTRY_NAME],
+        "CET1 Latest", [Latest Value],
+        "YoY bps", [YoY Change bps],
+        "Buffer", [Avg Regulatory Buffer]
+    ),
+    DIM_INDICATOR[INDICATOR_CODE] = "CET1_FL"
+)
+ORDER BY [CET1 Latest] DESC
