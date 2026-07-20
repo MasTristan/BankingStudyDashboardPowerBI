@@ -1,0 +1,86 @@
+page: Regulatory Compliance
+page_id: pgregcompliance00001
+canvas: {width: 1280, height: 848}
+grid: {cols: 12, row_px: 60, margin: 16, gutter: 8}
+visuals:
+  - type: textbox
+    text: "Regulatory Compliance - distance to minima"
+    pos: [0, 0, 9, 1]
+  - type: slicer
+    slots: {value: {table: dim_date, name: YEAR_QUARTER}}
+    pos: [9, 0, 3, 2]
+  - type: caption
+    text: "Distance to the CRR2 floors: CET1 4.5%, Tier 1 6%, total capital 8%, leverage 3%, LCR and NSFR 100%. Red would flag a breach; none appears at any grain."
+    pos: [0, 1, 9, 1]
+
+  - type: barChart
+    title: "Every market holds a double-digit CET1 buffer"
+    slots:
+      axis: {table: dim_country, name: COUNTRY_NAME}
+      measure: {table: _Measures, name: Avg Regulatory Buffer}
+    filters:
+      - field: {table: dim_indicator, name: INDICATOR_CODE}
+        type: In
+        values: [CET1_FL]
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+    sort: {slot: measure, direction: asc}
+    conditional_color:
+      by: {table: _Measures, name: Avg Regulatory Buffer}
+      rules:
+        - {if: "< 0", color: "#F87171"}
+      default: "#34D399"
+    format: {dataLabels: true, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 2, 7, 6]
+
+  - type: barChart
+    title: "Thinnest bank-level CET1 buffers still clear 8 points"
+    slots:
+      axis: {table: dim_bank, name: BANK_NAME}
+      measure: {table: _Measures, name: Avg Regulatory Buffer}
+    filters:
+      - field: {table: dim_indicator, name: INDICATOR_CODE}
+        type: In
+        values: [CET1_FL]
+      - field: {table: fact_ratios, name: SOURCE}
+        type: In
+        values: [TRANSPARENCY]
+      - field: {table: dim_bank, name: BANK_NAME}
+        type: TopN
+        count: 8
+        order_by: {table: _Measures, name: Avg Regulatory Buffer}
+        direction: asc
+    conditional_color:
+      by: {table: _Measures, name: Avg Regulatory Buffer}
+      rules:
+        - {if: "< 0", color: "#F87171"}
+      default: "#34D399"
+    format: {dataLabels: true, xAxisTitle: false, yAxisTitle: false}
+    pos: [0, 8, 7, 3]
+
+  - type: matrix
+    title: "Buffer to each requirement, by country"
+    slots:
+      rows: {table: dim_country, name: COUNTRY_NAME}
+      columns: {table: dim_indicator, name: INDICATOR_CODE}
+      values: {table: _Measures, name: Avg Regulatory Buffer}
+    filters:
+      - field: {table: dim_bank, name: BANK_SIZE}
+        type: In
+        values: [AGGREGATE]
+      - field: {table: dim_country, name: COUNTRY_CODE}
+        type: NotIn
+        values: [EU]
+      - field: {table: dim_indicator, name: INDICATOR_CODE}
+        type: In
+        values: [CET1_FL, TIER1_FL, LEV_RATIO, LCR, NSFR]
+    format: {rowSubtotals: false, columnSubtotals: false}
+    pos: [7, 2, 5, 9]
+
+  - type: caption
+    text: "Buffers in percentage points over each floor, latest quarter in the selected period. Country aggregates from ECB KRI; bank detail from the EBA 2024 Transparency Exercise."
+    pos: [0, 11, 12, 1]
