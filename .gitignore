@@ -28,7 +28,3 @@ Thumbs.db
 # Secrets
 .env
 
-# AI instruction files (kept out of the public repo)
-.claude/
-**/.claude/
-CLAUDE.md
